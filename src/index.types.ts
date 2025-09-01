@@ -6,7 +6,7 @@ type TextFieldProps = Omit<
   'onChange' | 'select' | 'multiline' | 'defaultValue' | 'value' | 'autoFocus'
 >
 
-type BoxProps = Omit<MuiBoxProps, 'onChange' | 'onBlur'>
+type BoxProps = Omit<MuiBoxProps, 'onChange' | 'onBlur' | 'autoFocus'>
 
 export type PastePreprocess =
   // No preprocessing (default for backward compatibility)
@@ -21,7 +21,13 @@ export type PastePreprocess =
 export interface BaseMuiOtpInputProps {
   value?: string
   length?: number
-  autoFocus?: boolean
+  /**
+   * Controls autofocus behavior for the first input field.
+   * - `true`: Focus immediately on mount
+   * - `false`: No autofocus (default)
+   * - `number`: Delay in milliseconds before focusing
+   */
+  autoFocus?: boolean | number
   TextFieldsProps?: TextFieldProps | ((index: number) => TextFieldProps)
   onComplete?: (value: string) => void
   validateChar?: (character: string, index: number) => boolean

@@ -167,3 +167,65 @@ export const Primary: StoryFn<typeof MuiOtpInput> = () => {
     </ThemeProvider>
   )
 }
+
+export const DelayedAutoFocus: StoryFn<typeof MuiOtpInput> = () => {
+  const [value, setValue] = React.useState<string>('')
+
+  const handleChange = (newValue: string) => {
+    setValue(newValue)
+  }
+
+  const handleComplete = (finalValue: string) => {
+    action('onComplete')(finalValue)
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <div>
+        <p style={{ marginBottom: 16 }}>
+          This input will focus automatically after 200ms delay
+        </p>
+        <MuiOtpInput
+          length={6}
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus={200}
+          sx={{ width: 350 }}
+          gap={1}
+          onComplete={handleComplete}
+          value={value}
+          onChange={handleChange}
+        />
+      </div>
+    </ThemeProvider>
+  )
+}
+
+export const NoAutoFocus: StoryFn<typeof MuiOtpInput> = () => {
+  const [value, setValue] = React.useState<string>('')
+
+  const handleChange = (newValue: string) => {
+    setValue(newValue)
+  }
+
+  const handleComplete = (finalValue: string) => {
+    action('onComplete')(finalValue)
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <div>
+        <p style={{ marginBottom: 16 }}>This input has no autofocus</p>
+        <MuiOtpInput
+          length={4}
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus={false}
+          sx={{ width: 250 }}
+          gap={1}
+          onComplete={handleComplete}
+          value={value}
+          onChange={handleChange}
+        />
+      </div>
+    </ThemeProvider>
+  )
+}
