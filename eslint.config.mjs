@@ -1,3 +1,5 @@
+// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
+import storybook from 'eslint-plugin-storybook'
 import hooksConfig from '@viclafouch/eslint-config-viclafouch/hooks.mjs'
 import importsConfig from '@viclafouch/eslint-config-viclafouch/imports.mjs'
 import baseConfig from '@viclafouch/eslint-config-viclafouch/index.mjs'
@@ -22,5 +24,6 @@ export default [
       '**/docs/build/**',
       'docs/.docusaurus/**/**'
     ]
-  }
+  },
+  ...storybook.configs['flat/recommended']
 ]

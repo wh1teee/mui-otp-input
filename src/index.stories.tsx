@@ -1,7 +1,7 @@
 import React from 'react'
+import { action } from 'storybook/actions'
 import { createTheme, ThemeProvider } from '@mui/material'
-import { action } from '@storybook/addon-actions'
-import type { Meta, StoryFn } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react-vite'
 import { MuiOtpInput } from './index'
 
 export default {
@@ -110,8 +110,10 @@ export const Primary: StoryFn<typeof MuiOtpInput> = () => {
               Paste Preprocess Mode:
               <select
                 value={pasteMode}
-                onChange={(e) => {
-                  return setPasteMode(e.target.value as any)
+                onChange={(event) => {
+                  return setPasteMode(
+                    event.target.value as 'none' | 'trim' | 'digits-only'
+                  )
                 }}
                 style={{ marginLeft: '10px' }}
               >
