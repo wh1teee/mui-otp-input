@@ -11,36 +11,159 @@ export default {
 
 const theme = createTheme()
 
-export const Primary: StoryFn<typeof MuiOtpInput> = () => {
-  const [value, setValue] = React.useState<string>('123456')
+export const WithTransform: StoryFn<typeof MuiOtpInput> = () => {
+  const [value, setValue] = React.useState<string>('')
 
   const handleChange = (newValue: string) => {
     setValue(newValue)
+    action('onChange')(newValue)
   }
 
   const handleComplete = (finalValue: string) => {
-    action('onCompete')(finalValue)
+    action('onComplete')(finalValue)
   }
 
   return (
     <ThemeProvider theme={theme}>
-      <MuiOtpInput
-        length={5}
-        // eslint-disable-next-line jsx-a11y/no-autofocus
-        autoFocus
-        sx={{ width: 300 }}
-        gap={1}
-        onComplete={handleComplete}
-        TextFieldsProps={(index: number) => {
-          return {
-            type: 'text',
-            size: 'medium',
-            placeholder: String(index)
-          }
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          padding: '20px'
         }}
-        value={value}
-        onChange={handleChange}
-      />
+      >
+        <div>
+          <h3>Character Transformation Example</h3>
+          <p style={{ fontSize: '14px', color: '#666' }}>
+            This example automatically converts lowercase letters to uppercase.
+            Try typing lowercase letters - they will be converted to uppercase
+            automatically.
+          </p>
+        </div>
+
+        <MuiOtpInput
+          length={6}
+          sx={{ width: 400 }}
+          gap={1}
+          value={value}
+          onChange={handleChange}
+          onComplete={handleComplete}
+          transformChar={(char) => {
+            return char.toUpperCase()
+          }}
+          validateChar={(char) => {
+            return /[A-Z0-9]/.test(char)
+          }}
+          TextFieldsProps={{
+            placeholder: '·',
+            helperText: 'Auto-converts to uppercase (accepts A-Z, 0-9)'
+          }}
+        />
+
+        <div style={{ fontSize: '14px' }}>
+          Current value: &quot;{value}&quot; (length: {value.length})
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            return setValue('')
+          }}
+        >
+          Clear
+        </button>
+      </div>
+    </ThemeProvider>
+  )
+}
+
+export const Primary: StoryFn<typeof MuiOtpInput> = () => {
+  const [value, setValue] = React.useState<string>('')
+  const [pasteMode, setPasteMode] = React.useState<
+    'none' | 'trim' | 'digits-only'
+  >('digits-only')
+
+  const handleChange = (newValue: string) => {
+    setValue(newValue)
+    action('onChange')(newValue)
+  }
+
+  const handleComplete = (finalValue: string) => {
+    action('onComplete')(finalValue)
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          padding: '20px'
+        }}
+      >
+        <div>
+          <h3>Test Paste Preprocessing</h3>
+          <div style={{ marginBottom: '10px' }}>
+            <label>
+              Paste Preprocess Mode:
+              <select
+                value={pasteMode}
+                onChange={(e) => {
+                  return setPasteMode(e.target.value as any)
+                }}
+                style={{ marginLeft: '10px' }}
+              >
+                <option value="none">none (original behavior)</option>
+                <option value="trim">trim (remove edge spaces)</option>
+                <option value="digits-only">
+                  digits-only (keep only digits)
+                </option>
+              </select>
+            </label>
+          </div>
+          <div
+            style={{ marginBottom: '10px', fontSize: '14px', color: '#666' }}
+          >
+            Try copying and pasting these values:
+            <ul>
+              <li>&quot; 123456 &quot; (with spaces)</li>
+              <li>&quot;12 34 56&quot; (spaces inside)</li>
+              <li>&quot;Code: 123-456&quot; (with extra characters)</li>
+            </ul>
+          </div>
+        </div>
+
+        <MuiOtpInput
+          length={6}
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus
+          sx={{ width: 400 }}
+          gap={1}
+          onComplete={handleComplete}
+          pastePreprocess={pasteMode}
+          TextFieldsProps={{
+            type: 'text',
+            size: 'medium'
+          }}
+          value={value}
+          onChange={handleChange}
+        />
+
+        <div style={{ fontSize: '14px' }}>
+          Current value: &quot;{value}&quot; (length: {value.length})
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            return setValue('')
+          }}
+        >
+          Clear
+        </button>
+      </div>
     </ThemeProvider>
   )
 }
