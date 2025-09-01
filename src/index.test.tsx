@@ -1,6 +1,7 @@
 import React from 'react'
 import { expect, vi } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MuiOtpInput } from './index'
 import * as testUtils from './testUtils'
 import '@testing-library/jest-dom/vitest'
@@ -64,5 +65,63 @@ describe('components/MuiOtpInput', () => {
     expect(testUtils.getInputElementByIndex(0)).toHaveFocus()
 
     vi.useRealTimers()
+  })
+
+  describe('focus behavior', () => {
+    test('should redirect focus to first empty input when clicking on subsequent empty input', async () => {
+      const user = userEvent.setup()
+      render(<MuiOtpInput value="12" length={6} />)
+
+      // empty input
+      const fourthInput = testUtils.getInputElementByIndex(4)
+      // first empty input
+      const thirdInput = testUtils.getInputElementByIndex(2)
+
+      await user.click(fourthInput)
+
+      await waitFor(() => {
+        expect(thirdInput).toHaveFocus()
+      })
+    })
+
+    test('should allow focusing on filled inputs for editing', async () => {
+      const user = userEvent.setup()
+      render(<MuiOtpInput value="1234" length={6} />)
+
+      // filled input with "2"
+      const secondInput = testUtils.getInputElementByIndex(1)
+
+      await user.click(secondInput)
+
+      expect(secondInput).toHaveFocus()
+    })
+
+    test('should allow focusing on the first empty input directly', async () => {
+      const user = userEvent.setup()
+      render(<MuiOtpInput value="12" length={6} />)
+
+      // first empty input
+      const thirdInput = testUtils.getInputElementByIndex(2)
+
+      await user.click(thirdInput)
+
+      expect(thirdInput).toHaveFocus()
+    })
+
+    test('should redirect focus correctly with different partial values', async () => {
+      const user = userEvent.setup()
+      render(<MuiOtpInput value="123" length={6} />)
+
+      // empty input
+      const sixthInput = testUtils.getInputElementByIndex(5)
+      // first empty input
+      const fourthInput = testUtils.getInputElementByIndex(3)
+
+      await user.click(sixthInput)
+
+      await waitFor(() => {
+        expect(fourthInput).toHaveFocus()
+      })
+    })
   })
 })

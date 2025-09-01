@@ -77,11 +77,14 @@ const MuiOtpInput = React.forwardRef(
       })
     }, [stableRefs, value])
 
-    const getIndexByInputElement = (inputElement: HTMLInputElement) => {
-      return valueSplitted.findIndex(({ inputRef }) => {
-        return inputRef.current === inputElement
-      })
-    }
+    const getIndexByInputElement = React.useCallback(
+      (inputElement: HTMLInputElement) => {
+        return valueSplitted.findIndex(({ inputRef }) => {
+          return inputRef.current === inputElement
+        })
+      },
+      [valueSplitted]
+    )
 
     const getCharactersSplitted = () => {
       return valueSplitted.map(({ character }) => {
@@ -101,9 +104,9 @@ const MuiOtpInput = React.forwardRef(
 
     const focusInputByIndex = React.useCallback(
       (inputIndex: number) => {
-        valueSplitted[inputIndex]?.inputRef.current?.focus()
+        stableRefs[inputIndex]?.current?.focus()
       },
-      [valueSplitted]
+      [stableRefs]
     )
 
     // Handle delayed autofocus when autoFocus is a number
@@ -121,16 +124,24 @@ const MuiOtpInput = React.forwardRef(
       return undefined
     }, [autoFocus, focusInputByIndex])
 
-    const selectInputByIndex = (inputIndex: number) => {
-      valueSplitted[inputIndex]?.inputRef.current?.select()
-    }
+    const selectInputByIndex = React.useCallback(
+      (inputIndex: number) => {
+        const input = stableRefs[inputIndex]?.current
+
+        if (input) {
+          input.focus()
+          input.select()
+        }
+      },
+      [stableRefs]
+    )
 
     const manageCaretForNextInput = (currentInputIndex: number) => {
       if (currentInputIndex + 1 === length) {
         return
       }
 
-      if (valueSplitted[currentInputIndex + 1].character) {
+      if (value[currentInputIndex + 1]) {
         selectInputByIndex(currentInputIndex + 1)
       } else {
         focusInputByIndex(currentInputIndex + 1)
@@ -310,6 +321,33 @@ const MuiOtpInput = React.forwardRef(
       }
     }
 
+    const handlePointerDown = React.useCallback(
+      (event: React.PointerEvent<HTMLDivElement>) => {
+        // Only handle left mouse button clicks
+        if (event.button !== 0) {
+          return
+        }
+
+        const target = event.target as HTMLElement
+
+        if (target.tagName !== 'INPUT') {
+          return
+        }
+
+        const inputElement = target as HTMLInputElement
+        const currentInputIndex = getIndexByInputElement(inputElement)
+        const firstEmptyIndex = value.length
+
+        // If user clicks on an empty input that's not the first empty one,
+        // prevent default focus and redirect to first empty input
+        if (!value[currentInputIndex] && currentInputIndex > firstEmptyIndex) {
+          event.preventDefault()
+          selectInputByIndex(firstEmptyIndex)
+        }
+      },
+      [value, selectInputByIndex, getIndexByInputElement]
+    )
+
     const handleBlur = (
       event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>
     ) => {
@@ -359,6 +397,9 @@ const MuiOtpInput = React.forwardRef(
                 event.preventDefault()
                 handleOneInputPaste(event)
                 onPaste?.(event)
+              }}
+              onPointerDown={(event) => {
+                handlePointerDown(event)
               }}
               onFocus={(event) => {
                 event.preventDefault()
