@@ -1,6 +1,6 @@
 import React from 'react'
-import { expect } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { expect, vi } from 'vitest'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MuiOtpInput } from './index'
 import * as testUtils from './testUtils'
@@ -46,6 +46,25 @@ describe('components/MuiOtpInput', () => {
     // eslint-disable-next-line jsx-a11y/no-autofocus
     render(<MuiOtpInput value="abcd" autoFocus />)
     expect(testUtils.getInputElementByIndex(0)).toHaveFocus()
+  })
+
+  test('should focus first input with delay when autoFocus is a number', () => {
+    vi.useFakeTimers()
+    // eslint-disable-next-line jsx-a11y/no-autofocus
+    render(<MuiOtpInput value="abcd" autoFocus={100} />)
+
+    // Initially, the first input should not have focus
+    expect(testUtils.getInputElementByIndex(0)).not.toHaveFocus()
+
+    // Advance timers by 100ms to trigger the setTimeout callback
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
+
+    // Now the first input should have focus
+    expect(testUtils.getInputElementByIndex(0)).toHaveFocus()
+
+    vi.useRealTimers()
   })
 
   describe('focus behavior', () => {
