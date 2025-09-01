@@ -60,15 +60,20 @@ const MuiOtpInput = React.forwardRef(
       }
     }, [length, onCallbackEvent, matchIsCompletedEvent])
 
-    const valueSplitted: ValueSplitted = getFilledArray(
-      length as number,
-      (_, index) => {
+    const stableRefs = React.useMemo(() => {
+      return getFilledArray(length, () => {
+        return React.createRef<HTMLInputElement>()
+      })
+    }, [length])
+
+    const valueSplitted: ValueSplitted = React.useMemo(() => {
+      return stableRefs.map((inputRef, index) => {
         return {
           character: (value as string)[index] || '',
-          inputRef: React.createRef<HTMLInputElement>()
+          inputRef
         }
-      }
-    )
+      })
+    }, [stableRefs, value])
 
     const getIndexByInputElement = (inputElement: HTMLInputElement) => {
       return valueSplitted.findIndex(({ inputRef }) => {
@@ -92,9 +97,27 @@ const MuiOtpInput = React.forwardRef(
       return joinArrayStrings(newValueSplitted)
     }
 
-    const focusInputByIndex = (inputIndex: number) => {
-      valueSplitted[inputIndex]?.inputRef.current?.focus()
-    }
+    const focusInputByIndex = React.useCallback(
+      (inputIndex: number) => {
+        valueSplitted[inputIndex]?.inputRef.current?.focus()
+      },
+      [valueSplitted]
+    )
+
+    // Handle delayed autofocus when autoFocus is a number
+    React.useEffect(() => {
+      if (typeof autoFocus === 'number') {
+        const timeoutId = setTimeout(() => {
+          focusInputByIndex(0)
+        }, autoFocus)
+
+        return () => {
+          clearTimeout(timeoutId)
+        }
+      }
+
+      return undefined
+    }, [autoFocus, focusInputByIndex])
 
     const selectInputByIndex = (inputIndex: number) => {
       valueSplitted[inputIndex]?.inputRef.current?.select()
@@ -289,7 +312,7 @@ const MuiOtpInput = React.forwardRef(
           return (
             <TextFieldBox
               // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus={autoFocus ? index === 0 : false}
+              autoFocus={autoFocus === true ? index === 0 : false}
               autoComplete="one-time-code"
               value={character}
               inputRef={mergeRefs([inputRef, TextFieldInputRef])}
