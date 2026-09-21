@@ -9,8 +9,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 
 assert.equal(manifest.name, '@wh1teee/mui-otp-input')
-assert.match(manifest.version, /^8\.0\.0-next\.\d+$/u)
-assert.equal(manifest.publishConfig?.tag, 'next')
+assert.match(manifest.version, /^8\.0\.0(?:-next\.\d+)?$/u)
+assert.deepEqual(manifest.publishConfig, { access: 'public', provenance: true })
 assert.equal(manifest.publishConfig?.provenance, true)
 assert.equal(manifest.sideEffects?.length, 1)
 assert.equal(manifest.sideEffects[0], './dist/shadcn.css')
@@ -18,6 +18,7 @@ assert.equal(manifest.sideEffects[0], './dist/shadcn.css')
 const expectedExports = [
   '.',
   './mui',
+  './mui/react-hook-form',
   './headless',
   './base-ui',
   './shadcn',

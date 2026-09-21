@@ -12,7 +12,7 @@ The package intentionally publishes one behavior contract and separate renderer 
 | Base UI primitives             | `/base-ui`                 | Base UI                         |
 | shadcn names and optional skin | `/shadcn` + `/shadcn.css`  | Base UI                         |
 | Behavior-only utilities        | `/headless`                | no UI peer                      |
-| MUI form adapter               | `/react-hook-form`         | MUI + Emotion + React Hook Form |
+| MUI form adapter               | `/mui/react-hook-form`     | MUI + Emotion + React Hook Form |
 | Base UI form adapter           | `/base-ui/react-hook-form` | Base UI + React Hook Form       |
 
 MUI and Base UI are optional peers. The MUI closure contains no Base UI runtime import; the Base UI closure contains no MUI or Emotion runtime import. This boundary is checked against the built package and against isolated consumers installed from the exact tarball.
@@ -32,3 +32,7 @@ Use `/headless` for server-side normalization, custom renderers, or validation u
 The package never installs Tailwind or modifies global tokens. `shadcn.css` is scoped to `data-slot` attributes. Applications may skip it entirely and style those slots in their own design system.
 
 The MUI adapter retains `MuiOtpInput-Box`, `MuiOtpInput-TextField`, and `MuiOtpInput-TextField-{n}` classes and accepts normal MUI `Box` and `TextField` customization.
+
+## Bundle isolation
+
+Exact-artifact CI bundles each public entrypoint with React and renderer/form peers external. It enforces gzip/Brotli ceilings and verifies that MUI closures contain no Base UI import, Base UI/shadcn closures contain no MUI or Emotion import, and `/headless` has no runtime peer. A Next.js 16 App Router consumer proves the shadcn path without package-specific Next.js configuration.

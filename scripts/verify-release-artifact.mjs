@@ -25,12 +25,16 @@ try {
     await readFile(join(packageRoot, 'package.json'), 'utf8')
   )
   assert.equal(manifest.name, '@wh1teee/mui-otp-input')
-  assert.match(manifest.version, /^8\.0\.0-next\.\d+$/u)
-  assert.equal(manifest.publishConfig?.tag, 'next')
+  assert.match(manifest.version, /^8\.0\.0(?:-next\.\d+)?$/u)
+  assert.deepEqual(manifest.publishConfig, {
+    access: 'public',
+    provenance: true
+  })
 
   const expectedExports = [
     '.',
     './mui',
+    './mui/react-hook-form',
     './headless',
     './base-ui',
     './shadcn',

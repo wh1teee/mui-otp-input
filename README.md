@@ -3,7 +3,7 @@
 Accessible one-time-code input for React with **independent MUI and Base UI / shadcn renderers** over shared normalization contracts.
 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![npm](https://img.shields.io/npm/v/@wh1teee/mui-otp-input/next)](https://www.npmjs.com/package/@wh1teee/mui-otp-input)
+[![npm](https://img.shields.io/npm/v/@wh1teee/mui-otp-input)](https://www.npmjs.com/package/@wh1teee/mui-otp-input)
 
 The root export remains the MUI component for compatibility with earlier releases of this fork. Base UI, shadcn, headless, and form adapters are explicit subpath exports, so consumers install only the renderer peers they use.
 
@@ -169,7 +169,8 @@ export function Form() {
 
 Available adapters:
 
-- `@wh1teee/mui-otp-input/react-hook-form` — MUI `MuiOtpInputController`
+- `@wh1teee/mui-otp-input/react-hook-form` — compatibility MUI `MuiOtpInputController`
+- `@wh1teee/mui-otp-input/mui/react-hook-form` — explicit MUI form adapter
 - `@wh1teee/mui-otp-input/base-ui/react-hook-form` — Base UI `OtpInputController`
 - `@wh1teee/mui-otp-input/shadcn/react-hook-form` — alias of the Base UI form adapter
 
@@ -209,10 +210,17 @@ The maintained MUI adapter keeps the behavior previously shipped by this fork:
 | `@wh1teee/mui-otp-input/base-ui`                 | Base UI                         |
 | `@wh1teee/mui-otp-input/shadcn`                  | Base UI                         |
 | `@wh1teee/mui-otp-input/react-hook-form`         | MUI + Emotion + React Hook Form |
+| `@wh1teee/mui-otp-input/mui/react-hook-form`     | MUI + Emotion + React Hook Form |
 | `@wh1teee/mui-otp-input/base-ui/react-hook-form` | Base UI + React Hook Form       |
 | `@wh1teee/mui-otp-input/shadcn.css`              | opt-in stylesheet               |
 
 Renderer and form peers are optional at the package level. Missing peers fail only when their corresponding export is imported.
+
+## Bundle and Next.js behavior
+
+Exact-tarball CI bundles every entrypoint with React and renderer/form peers external, then enforces gzip and Brotli ceilings. Current package-owned gzip closures are approximately 0.7 KiB for `/headless`, 2.9 KiB for `/base-ui` and `/shadcn`, 3.8 KiB for MUI, 3.1 KiB for Base UI + React Hook Form, and 4.0 KiB for MUI + React Hook Form. The verifier also rejects MUI/Base UI leakage in either direction.
+
+UI entrypoints preserve `"use client"`; `/headless` has no React or renderer runtime. A production Next.js 16 App Router consumer installs the exact tarball, builds with Turbopack, renders server HTML, and checks that the shadcn closure contains no MUI or Emotion. No `transpilePackages`, `serverExternalPackages`, or experimental `optimizePackageImports` configuration is required.
 
 ## Migration to v8
 
@@ -226,7 +234,7 @@ explicit renderer boundary may switch to the equivalent `/mui` subpath:
 + import { MuiOtpInput } from '@wh1teee/mui-otp-input/mui'
 ```
 
-The v8 prerelease is a major because the maintained fork moved from the older v5 code line to upstream v7 and introduced explicit renderer boundaries. Validate MUI theme overrides and strict TypeScript builds before adopting the stable v8 release.
+Version 8 is the stable major for the maintained fork. It moves from the older v5 code line to upstream v7, adds MUI 9 qualification, and freezes explicit renderer boundaries. Existing root imports remain MUI-compatible.
 
 ## Verification
 

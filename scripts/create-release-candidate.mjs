@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveReleaseChannel } from './release-channel.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outputArgument = process.argv.find((argument) =>
@@ -17,8 +18,8 @@ const outputDirectory = resolve(
 const requireTag = process.argv.includes('--require-tag')
 
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-assert.match(manifest.version, /^8\.0\.0-next\.\d+$/u)
-assert.equal(manifest.publishConfig?.tag, 'next')
+const releaseChannel = resolveReleaseChannel(manifest.version)
+assert.deepEqual(manifest.publishConfig, { access: 'public', provenance: true })
 
 if (requireTag) {
   assert.equal(
@@ -43,6 +44,14 @@ const artifactContent = await readFile(artifactPath)
 const sha256 = createHash('sha256').update(artifactContent).digest('hex')
 
 const candidate = {
+  publication: {
+    access: 'public',
+    distTag: releaseChannel.distTag,
+    prerelease: releaseChannel.prerelease,
+    provenance: true,
+    releaseTag: releaseChannel.releaseTag,
+    workflow: '.github/workflows/release.yml'
+  },
   package: {
     name: manifest.name,
     version: manifest.version
@@ -79,6 +88,13 @@ const releaseNotesPath = join(
 )
 const releaseNotes = await readFile(releaseNotesPath, 'utf8')
 await writeFile(join(outputDirectory, 'RELEASE_NOTES.md'), releaseNotes)
+if (!releaseChannel.prerelease) {
+  const rollback = await readFile(
+    join(root, 'docs', 'releases', `rollback-${manifest.version}.md`),
+    'utf8'
+  )
+  await writeFile(join(outputDirectory, 'ROLLBACK.md'), rollback)
+}
 
 console.log(
   `Created ${metadata.filename}: ${metadata.size} packed bytes, SHA-256 ${sha256}.`

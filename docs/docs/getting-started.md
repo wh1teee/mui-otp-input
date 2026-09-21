@@ -62,6 +62,6 @@ The stylesheet is opt-in, has no global reset, and uses semantic variables such 
 
 ## Client components and SSR
 
-UI entrypoints emit the `"use client"` directive and can be server-rendered. The package is ESM and does not need a custom Next.js transpilation rule in supported toolchains.
+UI entrypoints emit the `"use client"` directive and can be server-rendered. The package is ESM and does not need `transpilePackages`, `serverExternalPackages`, or experimental `optimizePackageImports` configuration. The exact tarball is production-built and server-rendered in a Next.js 16 App Router consumer.
 
 The `/headless` export is UI-independent and safe to import from neutral/server code when only value normalization is required.
