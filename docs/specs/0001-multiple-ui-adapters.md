@@ -24,4 +24,4 @@ MUI consumers can install and run without Base UI. Base UI consumers can install
 
 ## Release proof
 
-Release candidates require unit tests, React Hook Form tests, Chromium/Firefox/WebKit browser tests, automated WCAG checks, package export and closure verification, isolated exact-tarball consumers, successful documentation build, and a provenance-enabled prerelease publication before product integration.
+Stable and prerelease candidates require unit tests, React Hook Form tests, Chromium/Firefox/WebKit browser tests, automated WCAG checks, package export and bundle-budget verification, isolated exact-tarball consumers, a production Next.js 16 App Router build/SSR proof, successful documentation build, and provenance-enabled immutable publication.

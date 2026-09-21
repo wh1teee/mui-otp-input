@@ -8,7 +8,7 @@
   },
   "homepage": "https://github.com/wh1teee/mui-otp-input#readme",
   "type": "module",
-  "version": "8.0.0-next.0",
+  "version": "8.0.0",
   "files": [
     "dist",
     "README.md",
@@ -25,6 +25,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./mui/react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "import": "./dist/react-hook-form.js",
+      "default": "./dist/react-hook-form.js"
     },
     "./headless": {
       "types": "./dist/headless.d.ts",
@@ -82,23 +87,25 @@
   "scripts": {
     "build": "tsdown && node scripts/build-assets.mjs",
     "build:storybook": "storybook build",
-    "ci:pr": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:consumers && pnpm verify:docs",
+    "ci:pr": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:entrypoint-bundles && pnpm verify:consumers && pnpm verify:next-consumer && pnpm verify:docs",
     "clean": "node scripts/clean.mjs",
     "coverage": "vitest run --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "pnpm typecheck && pnpm lint:scripts && eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:scripts": "for file in scripts/*.mjs; do node --check \"$file\"; done",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
     "test": "vitest",
-    "test:unit": "vitest run --config vite.config.ts",
     "test:browser": "node scripts/run-browser-tests.mjs",
+    "test:unit": "vitest run --config vite.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "verify:consumers": "node scripts/verify-packed-consumers.mjs",
-    "verify:package": "node scripts/verify-package.mjs",
-    "lint:scripts": "for file in scripts/*.mjs; do node --check \"$file\"; done",
-    "verify:docs": "pnpm --dir docs build && pnpm build:storybook"
+    "verify:docs": "pnpm --dir docs build && pnpm build:storybook",
+    "verify:entrypoint-bundles": "node scripts/verify-entrypoint-bundles.mjs",
+    "verify:next-consumer": "node scripts/verify-packed-next-consumer.mjs",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "peerDependencies": {
     "@base-ui/react": "^1.8.0",
@@ -181,7 +188,6 @@
   "packageManager": "pnpm@12.4.2",
   "publishConfig": {
     "access": "public",
-    "provenance": true,
-    "tag": "next"
+    "provenance": true
   }
 }

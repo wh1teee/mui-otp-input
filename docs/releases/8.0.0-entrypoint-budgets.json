@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "measurement": {
+    "external": [
+      "@base-ui/react",
+      "@emotion/react",
+      "@emotion/styled",
+      "@mui/material",
+      "react",
+      "react-dom",
+      "react-hook-form"
+    ],
+    "minifier": "oxc",
+    "note": "Limits measure package-owned client code while keeping the consuming application's renderer, React and form peers external."
+  },
+  "profiles": {
+    "index": {
+      "renderer": "mui",
+      "gzipLimit": 4500,
+      "brotliLimit": 4000
+    },
+    "headless": {
+      "renderer": "headless",
+      "gzipLimit": 1000,
+      "brotliLimit": 900
+    },
+    "base-ui": {
+      "renderer": "base-ui",
+      "gzipLimit": 3500,
+      "brotliLimit": 3100
+    },
+    "shadcn": {
+      "renderer": "base-ui",
+      "gzipLimit": 3500,
+      "brotliLimit": 3100
+    },
+    "react-hook-form": {
+      "renderer": "mui-rhf",
+      "gzipLimit": 4900,
+      "brotliLimit": 4300
+    },
+    "base-ui/react-hook-form": {
+      "renderer": "base-ui-rhf",
+      "gzipLimit": 3900,
+      "brotliLimit": 3400
+    }
+  }
+}

@@ -80,12 +80,21 @@ const distTags = JSON.parse(
 )
 assert.equal(registryMetadata.name, candidate.package.name)
 assert.equal(registryMetadata.version, candidate.package.version)
-assert.equal(distTags.next, candidate.package.version)
-assert.notEqual(
-  distTags.latest,
+assert.equal(
+  distTags[candidate.publication.distTag],
   candidate.package.version,
-  'Prerelease must not promote the latest dist-tag.'
+  `The ${candidate.publication.distTag} dist-tag must point to the exact release.`
 )
+if (candidate.publication.prerelease) {
+  assert.notEqual(
+    distTags.latest,
+    candidate.package.version,
+    'Prerelease must not promote the latest dist-tag.'
+  )
+} else {
+  assert.equal(distTags.latest, candidate.package.version)
+  assert.match(distTags.next ?? '', /^8\.0\.0-next\.\d+$/u)
+}
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-otp-registry-'))
 try {

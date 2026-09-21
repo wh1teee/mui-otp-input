@@ -209,6 +209,35 @@ assert.match(html, /MuiOtpInput-TextField-4/)
 `
   },
   {
+    name: 'mui-rhf',
+    dependencies: {
+      '@emotion/react': '11.14.0',
+      '@emotion/styled': '11.14.1',
+      '@mui/material': '9.4.0',
+      '@types/react': '19.3.0',
+      '@types/react-dom': '19.3.0',
+      react: '19.3.0',
+      'react-dom': '19.3.0',
+      'react-hook-form': '7.88.0'
+    },
+    forbidden: ['@base-ui/react'],
+    types: ['node', 'react', 'react-dom'],
+    sourceName: 'index.tsx',
+    source: `
+import assert from 'node:assert/strict'
+import { renderToString } from 'react-dom/server'
+import { useForm } from 'react-hook-form'
+import { MuiOtpInputController } from '@wh1teee/mui-otp-input/mui/react-hook-form'
+
+type Values = { code: string }
+function Form() {
+  const { control } = useForm<Values>({ defaultValues: { code: '1234' } })
+  return <MuiOtpInputController control={control} name="code" length={4} />
+}
+assert.match(renderToString(<Form />), /MuiOtpInput-Box/)
+`
+  },
+  {
     name: 'base-ui-rhf',
     dependencies: {
       '@base-ui/react': '1.8.0',
