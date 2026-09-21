@@ -4,6 +4,7 @@
 ISSUE_TEMPLATE/**
 coverage/**
 dist/**
+docs/.docusaurus/**
 docs/build/**
 docs/static/**
 mui-otp-input.gif

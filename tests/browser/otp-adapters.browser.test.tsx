@@ -8,14 +8,15 @@ import { MuiOtpInput } from '../../src/mui'
 import '../../src/shadcn.css'
 
 function dispatchPaste(input: HTMLInputElement, value: string) {
-  // Firefox ignores a constructor-supplied DataTransfer on synthetic clipboard
-  // events. Define the read-only payload explicitly so every engine exercises
-  // the same React/Base UI paste path rather than a fill/input replacement.
-  const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true })
+  // Firefox does not expose constructor-supplied clipboard data on untrusted
+  // ClipboardEvent instances. A generic bubbling `paste` event with an own
+  // clipboardData property exercises the same React/Base UI handler contract
+  // consistently in Chromium, Firefox, and WebKit.
+  const event = new Event('paste', { bubbles: true, cancelable: true })
   Object.defineProperty(event, 'clipboardData', {
     configurable: true,
     value: {
-      getData: (type: string) => {
+      getData(type: string) {
         return type === 'text/plain' ? value : ''
       }
     }
