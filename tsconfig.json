@@ -3,7 +3,7 @@
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "allowJs": false,
+    "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "types": ["vitest/globals"],
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "paths": {
@@ -23,7 +23,7 @@
       "@components/*": ["./src/components/*"]
     }
   },
-  "include": ["src/**/*", ".storybook/**/*"],
-  "exclude": ["vite.config.ts", "coverage", "dist"],
+  "include": ["src/**/*", "tests/**/*", ".storybook/**/*"],
+  "exclude": ["coverage", "dist"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

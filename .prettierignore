@@ -1,0 +1,16 @@
+.agents/**
+.claude/**
+.vitest/**
+ISSUE_TEMPLATE/**
+coverage/**
+dist/**
+docs/build/**
+docs/static/**
+mui-otp-input.gif
+node_modules/**
+storybook-static/**
+.storybook/preview-head.html
+docs/src/css/custom.css
+docs/src/css/index.css
+docs/src/pages/index.module.css
+docs/tsconfig.json

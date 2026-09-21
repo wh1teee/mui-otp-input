@@ -1,22 +1,51 @@
+import type React from 'react'
 import type { BoxProps as MuiBoxProps } from '@mui/material/Box'
 import type { TextFieldProps as MuiTextFieldProps } from '@mui/material/TextField'
+import type {
+  OtpInvalidDetails,
+  OtpValidationType,
+  PastePreprocess
+} from './headless'
 
-type TextFieldProps = Omit<
+export type MuiOtpTextFieldProps = Omit<
   MuiTextFieldProps,
-  'onChange' | 'select' | 'multiline' | 'defaultValue' | 'value' | 'autoFocus'
+  'autoFocus' | 'defaultValue' | 'multiline' | 'onChange' | 'select' | 'value'
 >
 
-type BoxProps = Omit<MuiBoxProps, 'onChange' | 'onBlur'>
+type BoxProps = Omit<
+  MuiBoxProps,
+  'autoFocus' | 'defaultValue' | 'onBlur' | 'onChange'
+>
 
-export type BaseMuiOtpInputProps = {
-  value?: string
+export interface BaseMuiOtpInputProps {
+  ariaLabel?: string
+  autoComplete?: string
+  autoFocus?: boolean | number
+  autoSubmit?: boolean
+  defaultValue?: string
+  disabled?: boolean
+  form?: string
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  inputRef?: React.Ref<HTMLInputElement>
   length?: number
-  autoFocus?: boolean
-  TextFieldsProps?: TextFieldProps | ((index: number) => TextFieldProps)
-  onComplete?: (value: string) => void
-  validateChar?: (character: string, index: number) => boolean
-  onChange?: (value: string) => void
+  mask?: boolean
+  name?: string
+  normalizeValue?: (value: string) => string
   onBlur?: (value: string, isCompleted: boolean) => void
+  onChange?: (value: string) => void
+  onComplete?: (value: string) => void
+  onInvalid?: (value: string, details: OtpInvalidDetails) => void
+  pastePreprocess?: PastePreprocess
+  readOnly?: boolean
+  required?: boolean
+  slotAriaLabel?: (index: number, length: number) => string
+  TextFieldsProps?:
+    | MuiOtpTextFieldProps
+    | ((index: number) => MuiOtpTextFieldProps | null | undefined)
+  transformChar?: (character: string, index: number) => string
+  validateChar?: (character: string, index: number) => boolean
+  validationType?: OtpValidationType
+  value?: string
 }
 
 export type MuiOtpInputProps = BoxProps & BaseMuiOtpInputProps

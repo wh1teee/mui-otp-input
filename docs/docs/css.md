@@ -2,37 +2,61 @@
 sidebar_position: 5
 ---
 
-# CSS
+# Styling
 
-Like any component, if you want to override a component's styles using custom classes, you can use the `className` prop.
+## MUI
 
-```jsx
-<MuiOtpInput className="my-class-name" />
+`MuiOtpInput` accepts MUI `Box` props on the root and `TextFieldsProps` for each slot.
+
+```tsx
+<MuiOtpInput
+  sx={{ gap: 1, maxWidth: 420 }}
+  TextFieldsProps={(index) => ({
+    size: 'small',
+    sx: { flex: '1 1 0', minWidth: 0 },
+    placeholder: String(index + 1)
+  })}
+/>
 ```
 
-Then, you can use the different global class names (see below) to target an element of `MuiOtpInput`.
+Stable global classes remain available for existing theme overrides:
 
-| 	Global class                            | Description                                                                                                                   |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `.MuiOtpInput-Box`                        | 	Styles applied to the root element.                                                                                                                   |
-| `.MuiOtpInput-TextField`                        | 	Styles applied to each [TextField](https://mui.com/material-ui/api/text-field/) component.                                                                                                                   |
-| `.MuiOtpInput-TextField-{n}`                        | 	Styles applied to a specific [TextField](https://mui.com/material-ui/api/text-field/) component. ``.MuiOtpInput-TextField-3` to target the third TextField for example.                                                                                                                    |
-For example: target the `.MuiOtpInput-TextField` global class name to customize all TextFields.
+| Class                        | Element                                                |
+| ---------------------------- | ------------------------------------------------------ |
+| `.MuiOtpInput-Box`           | Root MUI `Box`                                         |
+| `.MuiOtpInput-TextField`     | Every MUI `TextField`                                  |
+| `.MuiOtpInput-TextField-{n}` | One-based slot, for example `.MuiOtpInput-TextField-3` |
 
-## Example with styled-component / emotion
+## Base UI
 
-```jsx
-import { styled } from 'styled-components' // or emotion
-import { MuiOtpInput } from 'mui-one-time-password-input'
+Base UI parts expose semantic `data-slot` attributes:
 
-const MuiOtpInputStyled = styled(MuiOtpInput)`
-  display: flex;
-  gap: 30px;
-  max-width: 650px;
-  margin-inline: auto;
-`
+- `input-otp`
+- `input-otp-group`
+- `input-otp-slot`
+- `input-otp-separator`
+- `otp-field`
+- `otp-field-label`
+- `otp-field-description`
 
-function MyComponent() {
-  return <MuiOtpInputStyled />
-}
+Use `classNames` and `slotProps` on `OtpInput`, or attach classes directly to the primitives.
+
+```tsx
+<OtpInput
+  classNames={{
+    root: 'verification-field',
+    group: 'verification-slots',
+    slot: 'verification-slot'
+  }}
+  label="Code"
+  length={6}
+/>
 ```
+
+## Optional shadcn skin
+
+```tsx
+import '@wh1teee/mui-otp-input/shadcn.css'
+```
+
+The stylesheet is scoped to the package's `data-slot` attributes and reads semantic variables. It does not define root tokens, import fonts, reset elements, or use remote assets.

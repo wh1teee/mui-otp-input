@@ -1,0 +1,104 @@
+[data-slot='otp-field'] {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  color: var(--foreground, #171717);
+  font: inherit;
+}
+
+[data-slot='otp-field-label'] {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+[data-slot='input-otp'] {
+  min-width: 0;
+}
+
+[data-slot='input-otp-group'] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+[data-slot='input-otp-slot'] {
+  box-sizing: border-box;
+  width: 2.5rem;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--input, #d4d4d4);
+  border-radius: var(--radius, 0.5rem);
+  outline: none;
+  background: var(--background, white);
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
+}
+
+[data-slot='input-otp-slot']:focus-visible {
+  border-color: var(--ring, #737373);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--ring, #737373) 35%, transparent);
+}
+
+[data-slot='otp-field'][data-invalid] [data-slot='input-otp-slot'] {
+  border-color: var(--destructive, #b91c1c);
+}
+
+[data-slot='otp-field'][data-invalid]
+  [data-slot='input-otp-slot']:focus-visible {
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--destructive, #b91c1c) 25%, transparent);
+}
+
+[data-slot='otp-field'][data-disabled] {
+  opacity: 0.5;
+}
+
+[data-slot='input-otp-slot']:disabled {
+  cursor: not-allowed;
+}
+
+[data-slot='input-otp-separator'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--muted-foreground, #737373);
+}
+
+[data-slot='otp-field-description'] {
+  margin: 0;
+  color: var(--muted-foreground, #737373);
+  font-size: 0.875rem;
+}
+
+[data-slot='otp-field'][data-invalid] [data-slot='otp-field-description'] {
+  color: var(--destructive, #b91c1c);
+}
+
+@media (pointer: coarse) {
+  [data-slot='input-otp-slot'] {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='input-otp-slot'] {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-slot='input-otp-slot']:focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

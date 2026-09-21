@@ -4,49 +4,57 @@ sidebar_position: 7
 
 # React Hook Form
 
-Here an example if you want to plug `MuiOtpInput` to your form using [React Hook Form](https://react-hook-form.com/).
+The package supplies typed adapters instead of requiring every application to repeat `Controller` wiring.
+
+## Base UI / shadcn
 
 ```tsx
-import React from 'react'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import FormHelperText from '@mui/material/FormHelperText'
-import { MuiOtpInput } from 'mui-one-time-password-input'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
+import { OtpInputController } from '@wh1teee/mui-otp-input/base-ui/react-hook-form'
 
-const App = () => {
-  const { control, handleSubmit } = useForm({
-    defaultValues: {
-      otp: ''
-    }
+type Values = { code: string }
+
+export function VerificationForm() {
+  const { control, handleSubmit } = useForm<Values>({
+    defaultValues: { code: '' }
   })
 
-  const onSubmit = (data) => {
-    alert(JSON.stringify(data))
-  }
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <Controller
-        name="otp"
+    <form onSubmit={handleSubmit(console.log)}>
+      <OtpInputController
         control={control}
-        rules={{ validate: (value) => value.length === 6 }}
-        render={({ field, fieldState }) => (
-          <Box>
-            <MuiOtpInput sx={{ gap: 1 }} {...field} length={6} />
-            {fieldState.invalid ? (
-              <FormHelperText error>OTP invalid</FormHelperText>
-            ) : null}
-          </Box>
-        )}
+        label="Verification code"
+        length={6}
+        name="code"
+        rules={{
+          required: 'Enter the code',
+          validate: (value) => value.length === 6 || 'Enter all six digits'
+        }}
       />
-      <div>
-        <Button type="submit" variant="contained" sx={{ mt: 2 }}>
-          Submit
-        </Button>
-      </div>
+      <button type="submit">Continue</button>
     </form>
   )
 }
 ```
-[![Edit on CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/react-hook-form-with-mui-one-time-password-input-651h4g?theme=dark)
+
+The shadcn form export is an alias:
+
+```ts
+import { OtpInputController } from '@wh1teee/mui-otp-input/shadcn/react-hook-form'
+```
+
+## MUI
+
+```tsx
+import { MuiOtpInputController } from '@wh1teee/mui-otp-input/react-hook-form'
+;<MuiOtpInputController
+  ariaLabel="Verification code"
+  control={control}
+  length={6}
+  name="code"
+  rules={{ required: 'Enter the code' }}
+  validationType="numeric"
+/>
+```
+
+Both adapters expose the first native slot as the field ref. React Hook Form `setFocus`, reset, field disabling, touched state, and server errors therefore retain normal behavior.

@@ -3,7 +3,6 @@ import { expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MuiOtpInput } from './index'
 import * as testUtils from './testUtils'
-import '@testing-library/jest-dom/vitest'
 
 describe('components/MuiOtpInput', () => {
   test('should not crash', () => {
@@ -38,12 +37,11 @@ describe('components/MuiOtpInput', () => {
 
   test('should not focus first input by default', () => {
     render(<MuiOtpInput value="abcd" />)
-    expect(testUtils.getInputElementByIndex(0)).not.toHaveFocus()
+    expect(document.activeElement).not.toBe(testUtils.getInputElementByIndex(0))
   })
 
   test('should focus first input according to the autoFocus prop', () => {
-    // eslint-disable-next-line jsx-a11y/no-autofocus -- testing autoFocus behavior
     render(<MuiOtpInput value="abcd" autoFocus />)
-    expect(testUtils.getInputElementByIndex(0)).toHaveFocus()
+    expect(document.activeElement).toBe(testUtils.getInputElementByIndex(0))
   })
 })

@@ -1,6 +1,6 @@
 import React from 'react'
 import clsx from 'clsx'
-import { MuiOtpInput } from 'mui-one-time-password-input'
+import { MuiOtpInput } from '@wh1teee/mui-otp-input'
 import Link from '@docusaurus/Link'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import DocusaurusImageUrl from '@site/static/img/logo.svg'
@@ -22,17 +22,15 @@ const HomepageHeader = () => {
         <DocusaurusImageUrl width={180} height={180} />
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className={clsx('hero__subtitle', styles.subtitle)}>
-          A One-Time Password input designed for the React library{' '}
-          <Link target="_blank" href="https://mui.com">
-            MUI
-          </Link>
-          .
+          One shared OTP behavior contract with independent MUI and Base UI /
+          shadcn renderers.
         </p>
         <MuiOtpInput
           TextFieldsProps={{ placeholder: '-' }}
           value={otp}
           length={6}
           onChange={handleChange}
+          validationType="numeric"
         />
         <div className={styles.buttons}>
           <Link

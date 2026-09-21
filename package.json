@@ -1,6 +1,6 @@
 {
   "name": "@wh1teee/mui-otp-input",
-  "description": "A renderer-independent one-time password input for React with MUI and Base UI/shadcn adapters",
+  "description": "Accessible one-time password input for React with independent MUI and Base UI/shadcn adapters.",
   "author": "Victor de la Fouchardiere <victor.delafouchardiere@gmail.com> (https://github.com/viclafouch)",
   "license": "MIT",
   "bugs": {
@@ -8,90 +8,180 @@
   },
   "homepage": "https://github.com/wh1teee/mui-otp-input#readme",
   "type": "module",
-  "version": "7.0.0",
+  "version": "8.0.0-next.0",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
-  "main": "./dist/mui-one-time-password-input.es.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/mui-one-time-password-input.es.js",
-      "default": "./dist/mui-one-time-password-input.es.js"
-    }
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./mui": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./headless": {
+      "types": "./dist/headless.d.ts",
+      "import": "./dist/headless.js",
+      "default": "./dist/headless.js"
+    },
+    "./base-ui": {
+      "types": "./dist/base-ui.d.ts",
+      "import": "./dist/base-ui.js",
+      "default": "./dist/base-ui.js"
+    },
+    "./shadcn": {
+      "types": "./dist/shadcn.d.ts",
+      "import": "./dist/shadcn.js",
+      "default": "./dist/shadcn.js"
+    },
+    "./react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "import": "./dist/react-hook-form.js",
+      "default": "./dist/react-hook-form.js"
+    },
+    "./base-ui/react-hook-form": {
+      "types": "./dist/base-ui/react-hook-form.d.ts",
+      "import": "./dist/base-ui/react-hook-form.js",
+      "default": "./dist/base-ui/react-hook-form.js"
+    },
+    "./shadcn/react-hook-form": {
+      "types": "./dist/base-ui/react-hook-form.d.ts",
+      "import": "./dist/base-ui/react-hook-form.js",
+      "default": "./dist/base-ui/react-hook-form.js"
+    },
+    "./shadcn.css": "./dist/shadcn.css",
+    "./package.json": "./package.json"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wh1teee/mui-otp-input.git"
   },
   "keywords": [
-    "react",
-    "typescript",
+    "base-ui",
+    "form",
     "input",
-    "mui",
     "javascript",
     "material",
+    "mui",
+    "one-time-code",
     "otp",
-    "form",
-    "password"
+    "password",
+    "react",
+    "react-hook-form",
+    "shadcn",
+    "typescript",
+    "verification-code"
   ],
   "scripts": {
-    "build": "pnpm lint && pnpm test -- run && vite build",
-    "lint": "npx tsc --noEmit && eslint",
-    "lint:fix": "pnpm lint --fix",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "test": "vitest",
-    "release": "standard-version",
+    "build": "tsdown && node scripts/build-assets.mjs",
+    "build:storybook": "storybook build",
+    "ci:pr": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:consumers && pnpm verify:docs",
+    "clean": "node scripts/clean.mjs",
     "coverage": "vitest run --coverage",
-    "prepare": "husky"
-  },
-  "standard-version": {
-    "scripts": {
-      "prerelease": "npm run build"
-    },
-    "skip": {
-      "changelog": true
-    }
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm typecheck && pnpm lint:scripts && eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky",
+    "storybook": "storybook dev -p 6006",
+    "test": "vitest",
+    "test:unit": "vitest run --config vite.config.ts",
+    "test:browser": "node scripts/run-browser-tests.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify:consumers": "node scripts/verify-packed-consumers.mjs",
+    "verify:package": "node scripts/verify-package.mjs",
+    "lint:scripts": "for file in scripts/*.mjs; do node --check \"$file\"; done",
+    "verify:docs": "pnpm --dir docs build && pnpm build:storybook"
   },
   "peerDependencies": {
-    "@emotion/react": "^11.13.0",
-    "@emotion/styled": "^11.13.0",
+    "@base-ui/react": "^1.8.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@mui/material": "^7.0.0 || ^9.0.0",
     "@types/react": "^18.0.0 || ^19.0.0",
     "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "react-hook-form": "^7.0.0"
   },
   "peerDependenciesMeta": {
+    "@base-ui/react": {
+      "optional": true
+    },
+    "@emotion/react": {
+      "optional": true
+    },
+    "@emotion/styled": {
+      "optional": true
+    },
+    "@mui/material": {
+      "optional": true
+    },
     "@types/react": {
+      "optional": true
+    },
+    "react-hook-form": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/material": "^9.0.0",
-    "@storybook/addon-docs": "^10.3.3",
-    "@storybook/addon-links": "^10.3.3",
-    "@storybook/react": "^10.3.3",
-    "@storybook/react-vite": "^10.3.3",
-    "@testing-library/jest-dom": "^6.9",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
+    "@base-ui/react": "1.8.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/material": "9.4.0",
+    "@storybook/addon-docs": "10.6.0",
+    "@storybook/addon-links": "10.6.0",
+    "@storybook/react": "10.6.0",
+    "@storybook/react-vite": "10.6.0",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
     "@types/node": "^25.5.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@viclafouch/eslint-config-viclafouch": "5.3.0",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "6.1.1",
+    "@vitest/browser-playwright": "5.0.1",
+    "axe-core": "4.13.0",
     "eslint": "^9",
-    "eslint-plugin-storybook": "10.3.3",
+    "eslint-plugin-storybook": "10.6.0",
     "husky": "^9.1.7",
     "jsdom": "^29.0.1",
-    "prettier": "^3.8",
-    "standard-version": "^9.5.0",
-    "storybook": "^10.3.3",
-    "typescript": "^5.9",
-    "vite": "^8.0.3",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.1.2"
+    "playwright": "1.63.0",
+    "prettier": "3.9.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.88.0",
+    "storybook": "10.6.0",
+    "tsdown": "0.23.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.0",
+    "vitest": "5.0.1",
+    "vitest-browser-react": "2.3.0"
+  },
+  "sideEffects": [
+    "./dist/shadcn.css"
+  ],
+  "browserslist": [
+    "Chrome >= 117",
+    "Edge >= 121",
+    "Firefox >= 121",
+    "Safari >= 17",
+    "iOS >= 17"
+  ],
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=12 <13"
+  },
+  "packageManager": "pnpm@12.4.2",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
   }
 }
