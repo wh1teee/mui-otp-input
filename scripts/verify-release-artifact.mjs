@@ -25,7 +25,7 @@ try {
     await readFile(join(packageRoot, 'package.json'), 'utf8')
   )
   assert.equal(manifest.name, '@wh1teee/mui-otp-input')
-  assert.match(manifest.version, /^8\.0\.0(?:-next\.\d+)?$/u)
+  assert.match(manifest.version, /^8\.0\.\d+(?:-next\.\d+)?$/u)
   assert.deepEqual(manifest.publishConfig, {
     access: 'public',
     provenance: true

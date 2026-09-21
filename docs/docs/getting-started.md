@@ -65,3 +65,10 @@ The stylesheet is opt-in, has no global reset, and uses semantic variables such 
 UI entrypoints emit the `"use client"` directive and can be server-rendered. The package is ESM and does not need `transpilePackages`, `serverExternalPackages`, or experimental `optimizePackageImports` configuration. The exact tarball is production-built and server-rendered in a Next.js 16 App Router consumer.
 
 The `/headless` export is UI-independent and safe to import from neutral/server code when only value normalization is required.
+
+## TypeScript 7
+
+This package's declarations and examples are checked with TypeScript 7.0.2.
+The repository also installs Microsoft's official TypeScript 6 compatibility
+package only for tools that embed the compiler API; application type-checking
+continues to use the native TypeScript 7 `tsc` binary.
