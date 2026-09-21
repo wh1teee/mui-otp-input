@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "composite": true,
+    "strict": true,
     "module": "esnext",
-    "moduleResolution": "node"
+    "moduleResolution": "bundler"
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "vitest.browser.config.ts", "tsdown.config.ts"]
 }

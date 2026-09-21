@@ -3,18 +3,22 @@ import type * as Preset from '@docusaurus/preset-classic'
 import type { Config } from '@docusaurus/types'
 
 const config = {
-  title: 'MUI OTP input',
-  tagline: 'An OTP input designed for the React library MUI',
-  url: 'https://viclafouch.github.io',
+  title: 'React OTP input',
+  tagline: 'Independent MUI and Base UI/shadcn renderers for one-time codes',
+  url: 'https://wh1teee.github.io',
   baseUrl: '/mui-otp-input/',
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn'
+    }
+  },
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   // Usually your GitHub org/user name.
-  organizationName: 'viclafouch',
+  organizationName: 'wh1teee',
   // Usually your repo name.
   projectName: 'mui-otp-input',
   deploymentBranch: 'gh-pages',
@@ -52,9 +56,9 @@ const config = {
       respectPrefersColorScheme: false
     },
     navbar: {
-      title: 'MUI OTP input',
+      title: 'React OTP input',
       logo: {
-        alt: 'MUI otp input',
+        alt: 'React OTP input',
         src: 'img/logo.svg'
       },
       items: [
@@ -65,12 +69,12 @@ const config = {
           label: 'Documentation'
         },
         {
-          href: 'https://github.com/viclafouch/mui-otp-input',
+          href: 'https://github.com/wh1teee/mui-otp-input',
           label: 'GitHub',
           position: 'right'
         },
         {
-          href: 'https://www.npmjs.com/package/mui-one-time-password-input',
+          href: 'https://www.npmjs.com/package/@wh1teee/mui-otp-input',
           label: 'NPM',
           position: 'right'
         }
@@ -78,7 +82,7 @@ const config = {
     },
     footer: {
       style: 'dark',
-      copyright: `Copyright © ${new Date().getFullYear()} by Victor de la Fouchardiere`
+      copyright: `Copyright © ${new Date().getFullYear()} by the mui-otp-input contributors`
     },
     prism: {
       theme: themes.github,

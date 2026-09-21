@@ -1,39 +1,32 @@
 ---
-sidebar_position: 4
+sidebar_position: 3
 ---
 
 # TypeScript
 
-This package is written in **TypeScript**. So you don't need to create your own types. Here an example if you use **TypeScript**.
-
-**Nota bene**: Props are defined within the `MuiOtpInputProps` interface.
+All public entrypoints ship strict declarations and are verified with `skipLibCheck: false` from the exact packed tarball.
 
 ```tsx
-import React from 'react'
-import { MuiOtpInput } from 'mui-one-time-password-input'
+import { MuiOtpInput, type MuiOtpInputProps } from '@wh1teee/mui-otp-input'
+import { OtpInput, type OtpInputProps } from '@wh1teee/mui-otp-input/base-ui'
+```
 
-const MyComponent = () => {
-  const [value, setValue] = React.useState<string>('')
+Renderer declarations are isolated. Importing MUI types does not require Base UI, and importing Base UI types does not require MUI or Emotion.
 
-  const handleChange = (newValue: string) => {
-    setValue(newValue)
+React Hook Form field names are constrained to string-valued paths:
+
+```tsx
+import { OtpInputController } from '@wh1teee/mui-otp-input/base-ui/react-hook-form'
+
+type Values = {
+  verification: {
+    code: string
   }
-
-  const handleComplete = (finalValue: string) => {
-    fetch('...')
-  }
-
-  return (
-    <MuiOtpInput
-      value={value}
-      onChange={handleChange}
-      onComplete={handleComplete}
-      length={8}
-      autoFocus
-      validateChar={(character: string, index: number) => true}
-      transformChar={(character: string, index: number) => character.toUpperCase()}
-      pastePreprocess="trim"
-    />
-  )
 }
+;<OtpInputController<Values>
+  control={control}
+  label="Code"
+  length={6}
+  name="verification.code"
+/>
 ```

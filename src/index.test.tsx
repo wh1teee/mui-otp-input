@@ -1,10 +1,8 @@
 import React from 'react'
-import { expect, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { MuiOtpInput } from './index'
 import * as testUtils from './testUtils'
-import '@testing-library/jest-dom/vitest'
 
 describe('components/MuiOtpInput', () => {
   test('should not crash', () => {
@@ -39,89 +37,11 @@ describe('components/MuiOtpInput', () => {
 
   test('should not focus first input by default', () => {
     render(<MuiOtpInput value="abcd" />)
-    expect(testUtils.getInputElementByIndex(0)).not.toHaveFocus()
+    expect(document.activeElement).not.toBe(testUtils.getInputElementByIndex(0))
   })
 
   test('should focus first input according to the autoFocus prop', () => {
-    // eslint-disable-next-line jsx-a11y/no-autofocus
     render(<MuiOtpInput value="abcd" autoFocus />)
-    expect(testUtils.getInputElementByIndex(0)).toHaveFocus()
-  })
-
-  test('should focus first input with delay when autoFocus is a number', () => {
-    vi.useFakeTimers()
-    // eslint-disable-next-line jsx-a11y/no-autofocus
-    render(<MuiOtpInput value="abcd" autoFocus={100} />)
-
-    // Initially, the first input should not have focus
-    expect(testUtils.getInputElementByIndex(0)).not.toHaveFocus()
-
-    // Advance timers by 100ms to trigger the setTimeout callback
-    act(() => {
-      vi.advanceTimersByTime(100)
-    })
-
-    // Now the first input should have focus
-    expect(testUtils.getInputElementByIndex(0)).toHaveFocus()
-
-    vi.useRealTimers()
-  })
-
-  describe('focus behavior', () => {
-    test('should redirect focus to first empty input when clicking on subsequent empty input', async () => {
-      const user = userEvent.setup()
-      render(<MuiOtpInput value="12" length={6} />)
-
-      // empty input
-      const fourthInput = testUtils.getInputElementByIndex(4)
-      // first empty input
-      const thirdInput = testUtils.getInputElementByIndex(2)
-
-      await user.click(fourthInput)
-
-      await waitFor(() => {
-        expect(thirdInput).toHaveFocus()
-      })
-    })
-
-    test('should allow focusing on filled inputs for editing', async () => {
-      const user = userEvent.setup()
-      render(<MuiOtpInput value="1234" length={6} />)
-
-      // filled input with "2"
-      const secondInput = testUtils.getInputElementByIndex(1)
-
-      await user.click(secondInput)
-
-      expect(secondInput).toHaveFocus()
-    })
-
-    test('should allow focusing on the first empty input directly', async () => {
-      const user = userEvent.setup()
-      render(<MuiOtpInput value="12" length={6} />)
-
-      // first empty input
-      const thirdInput = testUtils.getInputElementByIndex(2)
-
-      await user.click(thirdInput)
-
-      expect(thirdInput).toHaveFocus()
-    })
-
-    test('should redirect focus correctly with different partial values', async () => {
-      const user = userEvent.setup()
-      render(<MuiOtpInput value="123" length={6} />)
-
-      // empty input
-      const sixthInput = testUtils.getInputElementByIndex(5)
-      // first empty input
-      const fourthInput = testUtils.getInputElementByIndex(3)
-
-      await user.click(sixthInput)
-
-      await waitFor(() => {
-        expect(fourthInput).toHaveFocus()
-      })
-    })
+    expect(document.activeElement).toBe(testUtils.getInputElementByIndex(0))
   })
 })

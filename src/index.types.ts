@@ -1,48 +1,51 @@
+import type React from 'react'
 import type { BoxProps as MuiBoxProps } from '@mui/material/Box'
 import type { TextFieldProps as MuiTextFieldProps } from '@mui/material/TextField'
+import type {
+  OtpInvalidDetails,
+  OtpValidationType,
+  PastePreprocess
+} from './headless'
 
-type TextFieldProps = Omit<
+export type MuiOtpTextFieldProps = Omit<
   MuiTextFieldProps,
-  'onChange' | 'select' | 'multiline' | 'defaultValue' | 'value' | 'autoFocus'
+  'autoFocus' | 'defaultValue' | 'multiline' | 'onChange' | 'select' | 'value'
 >
 
-type BoxProps = Omit<MuiBoxProps, 'onChange' | 'onBlur' | 'autoFocus'>
-
-export type PastePreprocess =
-  // No preprocessing (default for backward compatibility)
-  | 'none'
-  // Trim whitespace from start and end
-  | 'trim'
-  // Remove all non-digit characters
-  | 'digits-only'
-  // Custom preprocessing function
-  | ((value: string) => string)
+type BoxProps = Omit<
+  MuiBoxProps,
+  'autoFocus' | 'defaultValue' | 'onBlur' | 'onChange'
+>
 
 export interface BaseMuiOtpInputProps {
-  value?: string
-  length?: number
-  /**
-   * Controls autofocus behavior for the first input field.
-   * - `true`: Focus immediately on mount
-   * - `false`: No autofocus (default)
-   * - `number`: Delay in milliseconds before focusing
-   */
+  ariaLabel?: string
+  autoComplete?: string
   autoFocus?: boolean | number
-  TextFieldsProps?: TextFieldProps | ((index: number) => TextFieldProps)
-  onComplete?: (value: string) => void
-  validateChar?: (character: string, index: number) => boolean
-  transformChar?: (character: string, index: number) => string
-  onChange?: (value: string) => void
+  autoSubmit?: boolean
+  defaultValue?: string
+  disabled?: boolean
+  form?: string
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  inputRef?: React.Ref<HTMLInputElement>
+  length?: number
+  mask?: boolean
+  name?: string
+  normalizeValue?: (value: string) => string
   onBlur?: (value: string, isCompleted: boolean) => void
-  /**
-   * Pre-process pasted value before it is applied to the input.
-   * - 'none': No preprocessing (default for backward compatibility)
-   * - 'trim': Trim whitespace from start and end
-   * - 'digits-only': Remove all non-digit characters
-   * - Function: Custom preprocessing function
-   * @default 'none'
-   */
+  onChange?: (value: string) => void
+  onComplete?: (value: string) => void
+  onInvalid?: (value: string, details: OtpInvalidDetails) => void
   pastePreprocess?: PastePreprocess
+  readOnly?: boolean
+  required?: boolean
+  slotAriaLabel?: (index: number, length: number) => string
+  TextFieldsProps?:
+    | MuiOtpTextFieldProps
+    | ((index: number) => MuiOtpTextFieldProps | null | undefined)
+  transformChar?: (character: string, index: number) => string
+  validateChar?: (character: string, index: number) => boolean
+  validationType?: OtpValidationType
+  value?: string
 }
 
 export type MuiOtpInputProps = BoxProps & BaseMuiOtpInputProps

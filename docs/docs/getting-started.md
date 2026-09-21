@@ -2,56 +2,66 @@
 sidebar_position: 1
 ---
 
-# Getting Started
+# Getting started
 
-## Install
+`@wh1teee/mui-otp-input` exposes independent MUI and Base UI renderers. Install the package and only the peer dependencies for the renderer you use.
+
+## Material UI
+
 ```bash
-npm install mui-one-time-password-input --save
-```
-or you can use **yarn**
-```bash
-yarn add mui-one-time-password-input
+pnpm add @wh1teee/mui-otp-input @mui/material @emotion/react @emotion/styled react react-dom
 ```
 
-We have completed installing the package.
+```tsx
+import { MuiOtpInput } from '@wh1teee/mui-otp-input'
 
-## Simple usage
-
-Here is a simple usage for using the component:
-
-```jsx
-import React from 'react'
-import { MuiOtpInput } from 'mui-one-time-password-input'
-
-const MyComponent = () => {
-  const [otp, setOtp] = React.useState('')
-
-  const handleChange = (newValue) => {
-    setOtp(newValue)
-  }
+export function CodeField() {
+  const [value, setValue] = React.useState('')
 
   return (
-    <MuiOtpInput value={otp} onChange={handleChange} />
+    <MuiOtpInput
+      ariaLabel="Verification code"
+      length={6}
+      value={value}
+      onChange={setValue}
+      validationType="numeric"
+      pastePreprocess="digits-only"
+    />
   )
 }
 ```
 
-## Next.js integration
+The explicit `/mui` import is equivalent to the root import. MUI 7 and MUI 9 are supported.
 
-Learn how to use MUI OTP Input with [Next.js](https://nextjs.org/).
+## Base UI
 
-Once you have installed `MUI OTP Input` in your next.js project, it is important to transpile it as it is an ESM package first.
-
-```js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
- transpilePackages: ['mui-one-time-password-input'],
- // your config
-}
-
-module.exports = nextConfig
+```bash
+pnpm add @wh1teee/mui-otp-input @base-ui/react react react-dom
 ```
 
-## Congratulations !
+```tsx
+import { OtpInput } from '@wh1teee/mui-otp-input/base-ui'
+;<OtpInput
+  label="Verification code"
+  helperText="Enter the six digits from the message."
+  length={6}
+  name="code"
+/>
+```
 
-That's all, now let's deep dive into the [props](/docs/api-reference).
+Use `InputOTP`, `InputOTPGroup`, `InputOTPSlot`, and `InputOTPSeparator` when an application already owns its field label, help text, and validation layout.
+
+## shadcn-style skin
+
+```tsx
+import { OtpInput } from '@wh1teee/mui-otp-input/shadcn'
+import '@wh1teee/mui-otp-input/shadcn.css'
+```
+
+The stylesheet is opt-in, has no global reset, and uses semantic variables such as `--background`, `--foreground`, `--input`, `--ring`, `--destructive`, `--muted-foreground`, and `--radius`.
+
+## Client components and SSR
+
+UI entrypoints emit the `"use client"` directive and can be server-rendered. The package is ESM and does not need a custom Next.js transpilation rule in supported toolchains.
+
+The `/headless` export is UI-independent and safe to import from neutral/server code when only value normalization is required.

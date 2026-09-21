@@ -1,5 +1,18 @@
+---
+sidebar_position: 6
+---
+
 # Playground
 
-Need to play around with **MuiOtpInput** in a live environment before deciding if it's the right fit? No problem.
+The repository ships both MUI and Base UI stories. Run the reviewed local
+playground from the repository root:
 
-[![Open in CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/mui-one-time-password-input-pukd5t?theme=dark)
+```bash
+pnpm install --frozen-lockfile
+pnpm storybook
+```
+
+The production Storybook build is part of `pnpm ci:pr`, so examples are checked
+against the same package sources, peer versions, and semantic shadcn stylesheet
+as the release artifact. The previous public CodeSandbox targeted the unscoped
+upstream package and is intentionally not linked from the maintained fork.
