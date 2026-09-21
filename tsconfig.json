@@ -5,7 +5,7 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,13 +14,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "jsx": "react-jsx",
-    "baseUrl": "./src",
+    "verbatimModuleSyntax": true,
     "paths": {
-      "@assets/*": ["assets/*"],
-      "@shared/*": ["shared/*"],
-      "@components/*": ["components/*"]
+      "@assets/*": ["./src/assets/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@components/*": ["./src/components/*"]
     }
   },
   "include": ["src/**/*", ".storybook/**/*"],

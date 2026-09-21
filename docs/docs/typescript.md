@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4
+sidebar_position: 3
 ---
 
 # TypeScript
@@ -31,8 +31,6 @@ const MyComponent = () => {
       length={8}
       autoFocus
       validateChar={(character: string, index: number) => true}
-      transformChar={(character: string, index: number) => character.toUpperCase()}
-      pastePreprocess="trim"
     />
   )
 }

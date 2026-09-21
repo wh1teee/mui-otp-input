@@ -1,5 +1,6 @@
 import React from 'react'
 import TextFieldBox from '@components/TextFieldBox/TextFieldBox'
+import Box from '@mui/material/Box'
 import { KEYBOARD_KEY } from '@shared/constants/event'
 import {
   getFilledArray,
@@ -10,19 +11,19 @@ import {
 import { mergeRefs } from '@shared/helpers/react'
 import { split } from '@shared/helpers/string'
 import { useEvent } from '@shared/hooks/useEvent'
-import Box from '@mui/material/Box'
-import type { MuiOtpInputProps, PastePreprocess } from './index.types'
+import type { MuiOtpInputProps } from './index.types'
 
-export type { MuiOtpInputProps, PastePreprocess }
-
-type ValueSplitted = {
-  character: string
-  inputRef: React.RefObject<HTMLInputElement | null>
-}[]
+export type { MuiOtpInputProps }
 
 const defaultValidateChar = () => {
   return true
 }
+
+const BASE_BOX_SX = {
+  display: 'flex',
+  gap: '20px',
+  alignItems: 'center'
+} as const
 
 const MuiOtpInput = React.forwardRef(
   (props: MuiOtpInputProps, propRef: MuiOtpInputProps['ref']) => {
@@ -34,10 +35,9 @@ const MuiOtpInput = React.forwardRef(
       TextFieldsProps,
       onComplete,
       validateChar = defaultValidateChar,
-      transformChar,
       className,
       onBlur,
-      pastePreprocess = 'none',
+      sx,
       ...restBoxProps
     } = props
     const initialValue = React.useRef(value)
@@ -62,29 +62,18 @@ const MuiOtpInput = React.forwardRef(
       }
     }, [length, onCallbackEvent, matchIsCompletedEvent])
 
-    const stableRefs = React.useMemo(() => {
-      return getFilledArray(length, () => {
-        return React.createRef<HTMLInputElement>()
-      })
-    }, [length])
+    const valueSplitted = getFilledArray(length as number, (_, index) => {
+      return {
+        character: (value as string)[index] || '',
+        inputRef: React.createRef<HTMLInputElement>()
+      }
+    })
 
-    const valueSplitted: ValueSplitted = React.useMemo(() => {
-      return stableRefs.map((inputRef, index) => {
-        return {
-          character: (value as string)[index] || '',
-          inputRef
-        }
+    const getIndexByInputElement = (inputElement: HTMLInputElement) => {
+      return valueSplitted.findIndex(({ inputRef }) => {
+        return inputRef.current === inputElement
       })
-    }, [stableRefs, value])
-
-    const getIndexByInputElement = React.useCallback(
-      (inputElement: HTMLInputElement) => {
-        return valueSplitted.findIndex(({ inputRef }) => {
-          return inputRef.current === inputElement
-        })
-      },
-      [valueSplitted]
-    )
+    }
 
     const getCharactersSplitted = () => {
       return valueSplitted.map(({ character }) => {
@@ -102,83 +91,30 @@ const MuiOtpInput = React.forwardRef(
       return joinArrayStrings(newValueSplitted)
     }
 
-    const focusInputByIndex = React.useCallback(
-      (inputIndex: number) => {
-        stableRefs[inputIndex]?.current?.focus()
-      },
-      [stableRefs]
-    )
+    const focusInputByIndex = (inputIndex: number) => {
+      valueSplitted[inputIndex]?.inputRef.current?.focus()
+    }
 
-    // Handle delayed autofocus when autoFocus is a number
-    React.useEffect(() => {
-      if (typeof autoFocus === 'number') {
-        const timeoutId = setTimeout(() => {
-          focusInputByIndex(0)
-        }, autoFocus)
-
-        return () => {
-          clearTimeout(timeoutId)
-        }
-      }
-
-      return undefined
-    }, [autoFocus, focusInputByIndex])
-
-    const selectInputByIndex = React.useCallback(
-      (inputIndex: number) => {
-        const input = stableRefs[inputIndex]?.current
-
-        if (input) {
-          input.focus()
-          input.select()
-        }
-      },
-      [stableRefs]
-    )
+    const selectInputByIndex = (inputIndex: number) => {
+      valueSplitted[inputIndex]?.inputRef.current?.select()
+    }
 
     const manageCaretForNextInput = (currentInputIndex: number) => {
       if (currentInputIndex + 1 === length) {
         return
       }
 
-      if (value[currentInputIndex + 1]) {
+      if (valueSplitted[currentInputIndex + 1].character) {
         selectInputByIndex(currentInputIndex + 1)
       } else {
         focusInputByIndex(currentInputIndex + 1)
       }
     }
 
-    const processCharacter = (character: string, index: number): string => {
-      // Apply transformation if transformChar is provided
-      const transformedChar = transformChar
-        ? transformChar(character, index)
-        : character
-
-      // Then validate the transformed character
-      const isValid =
-        typeof validateChar !== 'function'
-          ? true
-          : validateChar(transformedChar, index)
-
-      // Return the transformed character if valid, empty string otherwise
-      return isValid ? transformedChar : ''
-    }
-
-    const preprocessPastedValue = (inputValue: string): string => {
-      if (typeof pastePreprocess === 'function') {
-        return pastePreprocess(inputValue)
-      }
-
-      switch (pastePreprocess) {
-        case 'trim':
-          return inputValue.trim()
-        case 'digits-only':
-          // Remove all non-digit characters
-          return inputValue.replace(/[^0-9]/g, '')
-        case 'none':
-        default:
-          return inputValue
-      }
+    const matchIsCharIsValid = (character: string, index: number) => {
+      return typeof validateChar !== 'function'
+        ? true
+        : validateChar(character, index)
     }
 
     const handleOneInputChange = (
@@ -186,22 +122,10 @@ const MuiOtpInput = React.forwardRef(
     ) => {
       const currentInputIndex = getIndexByInputElement(event.target)
 
-      // Autofill from sms
       if (currentInputIndex === 0 && event.target.value.length > 1) {
-        // Apply preprocessing to autofilled value (similar to paste)
-        const processedValue = preprocessPastedValue(event.target.value)
-
-        // Apply processCharacter to each character for consistency
-        const characters = split(processedValue).map((char, index) => {
-          return processCharacter(char, index)
-        })
-        const finalProcessedValue = joinArrayStrings(characters).slice(
-          0,
-          length
+        const { finalValue, isCompleted } = matchIsCompletedEvent(
+          event.target.value
         )
-
-        const { finalValue, isCompleted } =
-          matchIsCompletedEvent(finalProcessedValue)
         onChange?.(finalValue)
 
         if (isCompleted) {
@@ -214,7 +138,11 @@ const MuiOtpInput = React.forwardRef(
       }
 
       const initialChar = event.target.value[0] || ''
-      const character = processCharacter(initialChar, currentInputIndex)
+      let character = initialChar
+
+      if (character && !matchIsCharIsValid(character, currentInputIndex)) {
+        character = ''
+      }
 
       const newValue = replaceCharOfValue(currentInputIndex, character)
 
@@ -226,20 +154,14 @@ const MuiOtpInput = React.forwardRef(
         onComplete?.(finalValue)
       }
 
-      // Char is valid so go to next input
       if (character !== '') {
-        // handle when the filled input is before the input selected
         if (newValue.length - 1 < currentInputIndex) {
           selectInputByIndex(newValue.length)
         } else {
           manageCaretForNextInput(currentInputIndex)
         }
-
-        // Only for backspace so don't go to previous input if the char is invalid
-      } else if (initialChar === '') {
-        if (newValue.length <= currentInputIndex) {
-          selectInputByIndex(currentInputIndex - 1)
-        }
+      } else if (initialChar === '' && newValue.length <= currentInputIndex) {
+        selectInputByIndex(currentInputIndex - 1)
       }
     }
 
@@ -260,7 +182,6 @@ const MuiOtpInput = React.forwardRef(
           event.preventDefault()
 
           selectInputByIndex(currentInputIndex - 1)
-          // Caret is before the character and there is a character, so remove it
         } else if (isCaretBeforeChar) {
           event.preventDefault()
 
@@ -289,10 +210,8 @@ const MuiOtpInput = React.forwardRef(
     const handleOneInputPaste = (
       event: React.ClipboardEvent<HTMLDivElement>
     ) => {
-      const rawContent = event.clipboardData.getData('text/plain')
-      const processedContent = preprocessPastedValue(rawContent)
+      const content = event.clipboardData.getData('text/plain')
       const inputElement = event.target as HTMLInputElement
-      // Apply from where an input is empty or equal to the input selected
       const currentInputIndex = valueSplitted.findIndex(
         ({ character, inputRef }) => {
           return character === '' || inputRef.current === inputElement
@@ -302,10 +221,10 @@ const MuiOtpInput = React.forwardRef(
 
       const characters = mergeArrayStringFromIndex(
         currentCharacter,
-        split(processedContent),
+        split(content),
         currentInputIndex
       ).map((character, index) => {
-        return processCharacter(character, index)
+        return matchIsCharIsValid(character, index) ? character : ''
       })
 
       const newValue = joinArrayStrings(characters)
@@ -321,33 +240,6 @@ const MuiOtpInput = React.forwardRef(
       }
     }
 
-    const handlePointerDown = React.useCallback(
-      (event: React.PointerEvent<HTMLDivElement>) => {
-        // Only handle left mouse button clicks
-        if (event.button !== 0) {
-          return
-        }
-
-        const target = event.target as HTMLElement
-
-        if (target.tagName !== 'INPUT') {
-          return
-        }
-
-        const inputElement = target as HTMLInputElement
-        const currentInputIndex = getIndexByInputElement(inputElement)
-        const firstEmptyIndex = value.length
-
-        // If user clicks on an empty input that's not the first empty one,
-        // prevent default focus and redirect to first empty input
-        if (!value[currentInputIndex] && currentInputIndex > firstEmptyIndex) {
-          event.preventDefault()
-          selectInputByIndex(firstEmptyIndex)
-        }
-      },
-      [value, selectInputByIndex, getIndexByInputElement]
-    )
-
     const handleBlur = (
       event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>
     ) => {
@@ -361,11 +253,11 @@ const MuiOtpInput = React.forwardRef(
       }
     }
 
+    const sxItems = sx ? [sx].flat() : []
+
     return (
       <Box
-        display="flex"
-        gap="20px"
-        alignItems="center"
+        sx={[BASE_BOX_SX, ...sxItems]}
         ref={propRef}
         className={`MuiOtpInput-Box ${className || ''}`}
         {...restBoxProps}
@@ -385,8 +277,8 @@ const MuiOtpInput = React.forwardRef(
 
           return (
             <TextFieldBox
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus={autoFocus === true ? index === 0 : false}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- OTP input requires autoFocus on first field for usability
+              autoFocus={autoFocus ? index === 0 : false}
               autoComplete="one-time-code"
               value={character}
               inputRef={mergeRefs([inputRef, TextFieldInputRef])}
@@ -397,9 +289,6 @@ const MuiOtpInput = React.forwardRef(
                 event.preventDefault()
                 handleOneInputPaste(event)
                 onPaste?.(event)
-              }}
-              onPointerDown={(event) => {
-                handlePointerDown(event)
               }}
               onFocus={(event) => {
                 event.preventDefault()
@@ -415,9 +304,6 @@ const MuiOtpInput = React.forwardRef(
                 TextFieldOnBlur?.(event)
                 handleBlur(event)
               }}
-              // We use index as the order can't be moved
-              // We can't use the value as it can be duplicated
-              // eslint-disable-next-line react/no-array-index-key
               key={index}
               {...restTextFieldsProps}
             />
