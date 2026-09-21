@@ -257,3 +257,12 @@ pnpm ci:pr
 ## License and attribution
 
 MIT. This maintained fork incorporates the original `viclafouch/mui-otp-input` work. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
+## TypeScript toolchain
+
+The package is checked and built by the stable native TypeScript 7 compiler.
+Build tools that still embed TypeScript's programmatic API receive Microsoft's
+official `@typescript/typescript6` compatibility package through an npm alias.
+This keeps `tsc` on 7.0.2 while tsdown, Docusaurus, and other compiler-embedding
+tools remain on a supported API until TypeScript 7 publishes a stable one.
+`pnpm verify:typescript` enforces the compiler, binary, and API boundary.

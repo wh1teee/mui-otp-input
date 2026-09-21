@@ -284,7 +284,8 @@ try {
             '@wh1teee/mui-otp-input': `file:${tarball}`,
             '@types/node': '25.5.0',
             ...consumer.dependencies,
-            typescript: '6.0.3'
+            '@typescript/native': 'npm:typescript@7.0.2',
+            typescript: 'npm:@typescript/typescript6@6.0.2'
           }
         },
         null,

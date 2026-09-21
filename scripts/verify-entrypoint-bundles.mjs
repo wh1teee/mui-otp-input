@@ -19,7 +19,7 @@ const temporaryRoot = artifactArgument
 const packageRoot = temporaryRoot ? join(temporaryRoot, 'package') : root
 const budget = JSON.parse(
   await readFile(
-    join(root, 'docs/releases/8.0.0-entrypoint-budgets.json'),
+    join(root, 'docs/releases/stable-entrypoint-budgets.json'),
     'utf8'
   )
 )

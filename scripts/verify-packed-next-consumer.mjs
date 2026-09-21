@@ -82,7 +82,8 @@ await writeFile(
         next: '16.3.5',
         react: '19.3.0',
         'react-dom': '19.3.0',
-        typescript: '6.0.3'
+        '@typescript/native': 'npm:typescript@7.0.2',
+        typescript: 'npm:@typescript/typescript6@6.0.2'
       }
     },
     null,

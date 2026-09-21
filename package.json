@@ -8,7 +8,7 @@
   },
   "homepage": "https://github.com/wh1teee/mui-otp-input#readme",
   "type": "module",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "files": [
     "dist",
     "README.md",
@@ -87,7 +87,7 @@
   "scripts": {
     "build": "tsdown && node scripts/build-assets.mjs",
     "build:storybook": "storybook build",
-    "ci:pr": "pnpm format:check && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:entrypoint-bundles && pnpm verify:consumers && pnpm verify:next-consumer && pnpm verify:docs",
+    "ci:pr": "pnpm format:check && pnpm verify:typescript && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:entrypoint-bundles && pnpm verify:consumers && pnpm verify:next-consumer && pnpm verify:docs",
     "clean": "node scripts/clean.mjs",
     "coverage": "vitest run --coverage",
     "format": "prettier --write .",
@@ -105,7 +105,8 @@
     "verify:docs": "pnpm --dir docs build && pnpm build:storybook",
     "verify:entrypoint-bundles": "node scripts/verify-entrypoint-bundles.mjs",
     "verify:next-consumer": "node scripts/verify-packed-next-consumer.mjs",
-    "verify:package": "node scripts/verify-package.mjs"
+    "verify:package": "node scripts/verify-package.mjs",
+    "verify:typescript": "node scripts/verify-typescript-toolchain.mjs"
   },
   "peerDependencies": {
     "@base-ui/react": "^1.8.0",
@@ -151,6 +152,7 @@
     "@types/node": "^25.5.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@typescript/native": "npm:typescript@7.0.2",
     "@viclafouch/eslint-config-viclafouch": "5.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "@vitest/browser-playwright": "5.0.1",
@@ -166,7 +168,7 @@
     "react-hook-form": "7.88.0",
     "storybook": "10.6.0",
     "tsdown": "0.23.0",
-    "typescript": "6.0.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "8.3.0",
     "vitest": "5.0.1",
     "vitest-browser-react": "2.3.0"
