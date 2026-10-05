@@ -1,42 +1,34 @@
 # mui-otp-input
 
-A One-Time Password (OTP) input component for MUI (Material UI), published on NPM as `mui-one-time-password-input`.
+Accessible one-time code input for React, published on npm as
+`@wh1teee/mui-otp-input`. A maintained continuation of
+`viclafouch/mui-otp-input` (npm `mui-one-time-password-input`); keep the MIT
+attribution in `THIRD_PARTY_NOTICES.md`.
 
 ## Project structure
 
-- `src/` — Library source code (components, hooks, helpers)
-- `docs/` — Documentation site (Docusaurus), deployed on GitHub Pages
-- `.storybook/` — Storybook config for local development
+- `src/` — the package: MUI renderer (`mui.tsx`), Base UI / shadcn renderer
+  (`base-ui.tsx`, `internal/otp-behavior-root.tsx`), headless normalization
+  (`headless.ts`), React Hook Form adapters, `shadcn.css`.
+- `site/` — Next.js documentation site (workspace package
+  `mui-otp-input-site`), deployed to Vercel as `mui-otp-input-docs`.
+- `docs/` — ADRs, specs, release notes, rollback notes, entrypoint budgets.
+- `scripts/` — package, bundle, consumer, release, and site test verifiers.
+- `.storybook/` — local component stories.
 
 ## Commands
 
-- `pnpm build` — Build the library
-- `pnpm lint` — TypeScript check + ESLint
-- `pnpm test` — Run tests with Vitest
-- `pnpm storybook` — Local Storybook dev server
-- `pnpm release -- --release-as major|minor|patch` — Bump version with standard-version
+- `pnpm build` — build the package (required before building the site).
+- `pnpm lint` — type check, script syntax, and ESLint.
+- `pnpm test:unit`, `pnpm test:browser` — Vitest unit and Chromium/Firefox/WebKit tests.
+- `pnpm --dir site dev` — run the documentation site.
+- `pnpm ci:pr` — the full pull-request gate, including the site type check,
+  build, and Playwright/axe suite.
 
-## Deploy documentation
+## Release
 
-```
-cd docs && GIT_USER=viclafouch npx docusaurus deploy
-```
-
-> **Important:** Never use `pnpm deploy` or `npm run deploy` — `pnpm deploy` is a pnpm workspace command, not Docusaurus. Always use `npx docusaurus deploy` directly.
-
-This builds the Docusaurus site and pushes to the `gh-pages` branch.
-
-## Release workflow
-
-1. Fix bugs / add features on `main`
-2. Run `pnpm release -- --release-as <type>` (builds + bumps version + creates git tag)
-3. `npm publish`
-4. Create a GitHub Release with changelog
-5. Deploy the documentation (see above)
-6. Close related issues on GitHub
-
-## Maintenance
-
-- Monitor open issues and pull requests on GitHub
-- Keep peer dependency ranges broad for consumer compatibility
-- No runtime dependencies — the library is self-contained
+1. Bump `version` in `package.json` and add `docs/releases/<version>.md` and
+   `docs/releases/rollback-<version>.md`.
+2. Merge to `main`, then push the tag `v<version>`. `release.yml` verifies the
+   exact tarball and publishes it with npm provenance.
+3. Deploy `site/` to the Vercel project `mui-otp-input-docs`.

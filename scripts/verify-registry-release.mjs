@@ -93,7 +93,7 @@ if (candidate.publication.prerelease) {
   )
 } else {
   assert.equal(distTags.latest, candidate.package.version)
-  assert.match(distTags.next ?? '', /^8\.0\.0-next\.\d+$/u)
+  assert.match(distTags.next ?? '', /^8\.\d+\.\d+-next\.\d+$/u)
 }
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-otp-registry-'))

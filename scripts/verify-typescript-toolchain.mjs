@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url)
 const nativeSpecifier = 'npm:typescript@7.0.2'
 const compatibilitySpecifier = 'npm:@typescript/typescript6@6.0.2'
 
-for (const filename of ['package.json', 'docs/package.json']) {
+for (const filename of ['package.json', 'site/package.json']) {
   const manifest = JSON.parse(await readFile(filename, 'utf8'))
   assert.equal(
     manifest.devDependencies?.['@typescript/native'],
@@ -28,7 +28,7 @@ function commandVersion(...args) {
 assert.equal(commandVersion('exec', 'tsc', '--version'), 'Version 7.0.2')
 assert.match(commandVersion('exec', 'tsc6', '--version'), /^Version 6\.0\./u)
 assert.equal(
-  commandVersion('--dir', 'docs', 'exec', 'tsc', '--version'),
+  commandVersion('--dir', 'site', 'exec', 'tsc', '--version'),
   'Version 7.0.2'
 )
 

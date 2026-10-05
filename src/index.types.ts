@@ -12,9 +12,10 @@ export type MuiOtpTextFieldProps = Omit<
   'autoFocus' | 'defaultValue' | 'multiline' | 'onChange' | 'select' | 'value'
 >
 
+// Field-level callbacks replace the DOM handlers of the same name on the root.
 type BoxProps = Omit<
   MuiBoxProps,
-  'autoFocus' | 'defaultValue' | 'onBlur' | 'onChange'
+  'autoFocus' | 'defaultValue' | 'onBlur' | 'onChange' | 'onInvalid'
 >
 
 export interface BaseMuiOtpInputProps {

@@ -1,268 +1,170 @@
 # `@wh1teee/mui-otp-input`
 
-Accessible one-time-code input for React with **independent MUI and Base UI / shadcn renderers** over shared normalization contracts.
+[![npm version](https://img.shields.io/npm/v/@wh1teee/mui-otp-input?logo=npm&label=npm&color=cb3837)](https://www.npmjs.com/package/@wh1teee/mui-otp-input)
+[![npm downloads](https://img.shields.io/npm/dm/@wh1teee/mui-otp-input?logo=npm&label=downloads)](https://www.npmjs.com/package/@wh1teee/mui-otp-input)
+[![CI](https://github.com/wh1teee/mui-otp-input/actions/workflows/ci.yml/badge.svg)](https://github.com/wh1teee/mui-otp-input/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@wh1teee/mui-otp-input)](./LICENSE)
+[![docs](https://img.shields.io/badge/docs-mui--otp--input--docs.vercel.app-111)](https://mui-otp-input-docs.vercel.app)
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![npm](https://img.shields.io/npm/v/@wh1teee/mui-otp-input)](https://www.npmjs.com/package/@wh1teee/mui-otp-input)
+An accessible one-time code input for React. Typing, paste, and SMS autofill
+all land in one clean string. Use the Material UI component, the
+shadcn-styled Base UI field, or the primitives inside your own design system.
 
-The root export remains the MUI component for compatibility with earlier releases of this fork. Base UI, shadcn, headless, and form adapters are explicit subpath exports, so consumers install only the renderer peers they use.
+**[Documentation](https://mui-otp-input-docs.vercel.app)** ·
+**[Playground](https://mui-otp-input-docs.vercel.app/playground)** ·
+**[Migration](https://mui-otp-input-docs.vercel.app/migration)**
 
-## Choose a renderer
-
-### Material UI
+## Material UI
 
 ```bash
-pnpm add @wh1teee/mui-otp-input @mui/material @emotion/react @emotion/styled react react-dom
+pnpm add @wh1teee/mui-otp-input @mui/material @emotion/react @emotion/styled
 ```
 
 ```tsx
 'use client'
 
 import { MuiOtpInput } from '@wh1teee/mui-otp-input'
-// Equivalent explicit import:
-// import { MuiOtpInput } from '@wh1teee/mui-otp-input/mui'
+import { useState } from 'react'
 
 export function VerificationCode() {
-  const [value, setValue] = React.useState('')
+  const [code, setCode] = useState('')
 
   return (
     <MuiOtpInput
       ariaLabel="Verification code"
       length={6}
-      value={value}
-      onChange={setValue}
+      value={code}
+      onChange={setCode}
       validationType="numeric"
       pastePreprocess="digits-only"
-      TextFieldsProps={{ size: 'small' }}
     />
   )
 }
 ```
 
-MUI 7 and MUI 9 are supported. The MUI entrypoint does not import Base UI or React Hook Form.
+Material UI 7 and 9, React 18 and 19. The component keeps the API of the
+original `mui-one-time-password-input`; the root also accepts Material UI `Box`
+props.
 
-### Base UI
+## Base UI and shadcn
 
 ```bash
-pnpm add @wh1teee/mui-otp-input @base-ui/react react react-dom
+pnpm add @wh1teee/mui-otp-input @base-ui/react
 ```
-
-Use the complete accessible field:
 
 ```tsx
 'use client'
 
-import { OtpInput } from '@wh1teee/mui-otp-input/base-ui'
+import { OtpInput } from '@wh1teee/mui-otp-input/shadcn'
+import '@wh1teee/mui-otp-input/shadcn.css'
+import { useState } from 'react'
 
 export function VerificationCode() {
-  const [value, setValue] = React.useState('')
+  const [code, setCode] = useState('')
 
   return (
     <OtpInput
       label="Verification code"
-      helperText="Enter the six digits from the message."
+      helperText="Enter the six digits we sent to your phone."
       length={6}
-      name="code"
-      value={value}
-      onValueChange={setValue}
+      separatorAfter={[2]}
+      value={code}
+      onValueChange={setCode}
     />
   )
 }
 ```
 
-Or compose the primitives around an existing design-system field:
+`/shadcn` is the same component as `/base-ui` under shadcn naming. The optional
+stylesheet targets only `data-slot` attributes and reads the standard shadcn
+tokens (`--background`, `--input`, `--ring`, `--destructive`, `--radius`, …).
+Neither entrypoint loads Material UI or Emotion.
+
+Compose the primitives when your design system owns the field layout:
 
 ```tsx
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot
-} from '@wh1teee/mui-otp-input/base-ui'
-;<InputOTP length={6} value={value} onValueChange={setValue}>
-  <InputOTPGroup>
-    {Array.from({ length: 6 }, (_, index) => (
-      <InputOTPSlot
-        key={index}
-        index={index}
-        aria-label={`Verification code ${index + 1}/6`}
-      />
-    ))}
-  </InputOTPGroup>
-</InputOTP>
-```
+} from '@wh1teee/mui-otp-input/shadcn'
 
-The first slot should also have a visible `<label>` or an `aria-labelledby` relationship. `OtpInput` configures that automatically.
-
-### shadcn-style skin
-
-The `/shadcn` export uses the same Base UI primitives and public component names. Styling is opt-in and maps only semantic variables; it has no reset and no global selectors.
-
-```tsx
-import { OtpInput } from '@wh1teee/mui-otp-input/shadcn'
-import '@wh1teee/mui-otp-input/shadcn.css'
-;<OtpInput label="Code" length={6} />
-```
-
-Override semantic variables in the owning scope:
-
-```css
-.verification-scope {
-  --background: white;
-  --foreground: #171717;
-  --input: #d4d4d4;
-  --ring: #525252;
-  --destructive: #b91c1c;
-  --muted-foreground: #737373;
-  --radius: 0.5rem;
+export function CodeField() {
+  return (
+    <>
+      <label htmlFor="code">Verification code</label>
+      <InputOTP id="code" length={4}>
+        <InputOTPGroup>
+          {[0, 1, 2, 3].map((index) => (
+            <InputOTPSlot
+              key={index}
+              index={index}
+              aria-label={`Digit ${index + 1} of 4`}
+            />
+          ))}
+        </InputOTPGroup>
+      </InputOTP>
+    </>
+  )
 }
-```
-
-### Headless normalization
-
-The headless export has no React, MUI, Emotion, Base UI, or React Hook Form runtime import.
-
-```ts
-import {
-  isOtpComplete,
-  normalizeOtpValue,
-  preprocessOtpPaste
-} from '@wh1teee/mui-otp-input/headless'
-
-const pasted = preprocessOtpPaste('Your code is 12-34', 'digits-only')
-const value = normalizeOtpValue(pasted, {
-  length: 4,
-  validationType: 'numeric'
-})
-
-isOtpComplete(value, 4) // true
 ```
 
 ## React Hook Form
 
-Install `react-hook-form` only when using a form adapter.
-
 ```tsx
 import { useForm } from 'react-hook-form'
-import { OtpInputController } from '@wh1teee/mui-otp-input/base-ui/react-hook-form'
+import { OtpInputController } from '@wh1teee/mui-otp-input/shadcn/react-hook-form'
 
-type Values = { code: string }
-
-export function Form() {
-  const { control, handleSubmit } = useForm<Values>({
-    defaultValues: { code: '' }
-  })
+export function VerifyForm() {
+  const { control, handleSubmit } = useForm({ defaultValues: { code: '' } })
 
   return (
-    <form onSubmit={handleSubmit(console.log)}>
+    <form onSubmit={handleSubmit((values) => console.log(values.code))}>
       <OtpInputController
         control={control}
+        name="code"
         label="Verification code"
         length={6}
-        name="code"
-        rules={{ required: 'Enter the code' }}
+        rules={{
+          validate: (value) => value.length === 6 || 'Enter all six digits'
+        }}
       />
-      <button type="submit">Continue</button>
+      <button type="submit">Verify</button>
     </form>
   )
 }
 ```
 
-Available adapters:
+For Material UI, use `MuiOtpInputController` from `/mui/react-hook-form`. Both
+controllers register the first slot as the field ref, so focus on error,
+`reset`, and server errors behave like any other input.
 
-- `@wh1teee/mui-otp-input/react-hook-form` — compatibility MUI `MuiOtpInputController`
-- `@wh1teee/mui-otp-input/mui/react-hook-form` — explicit MUI form adapter
-- `@wh1teee/mui-otp-input/base-ui/react-hook-form` — Base UI `OtpInputController`
-- `@wh1teee/mui-otp-input/shadcn/react-hook-form` — alias of the Base UI form adapter
+## Entrypoints
 
-Both adapters register the first native slot as the field ref, so `setFocus`, reset, server errors, and native form submission retain normal form behavior.
+| Import                                                | Provides                     | Peers                     |
+| ----------------------------------------------------- | ---------------------------- | ------------------------- |
+| `@wh1teee/mui-otp-input`, `/mui`                      | `MuiOtpInput`                | MUI + Emotion             |
+| `/base-ui`, `/shadcn`                                 | `OtpInput`, `InputOTP` parts | Base UI                   |
+| `/shadcn.css`                                         | Optional skin                | none                      |
+| `/headless`                                           | Normalization helpers        | none                      |
+| `/mui/react-hook-form`                                | `MuiOtpInputController`      | MUI + React Hook Form     |
+| `/base-ui/react-hook-form`, `/shadcn/react-hook-form` | `OtpInputController`         | Base UI + React Hook Form |
 
-## Shared behavior
+Renderer and form peers are optional; a missing peer fails only when its
+entrypoint is imported. Every entrypoint is size-budgeted and checked from the
+exact tarball in isolated MUI 7, MUI 9, Base UI–only, and Next.js 16 consumers.
 
-All renderers use the same value rules:
-
-- a single canonical string is exposed to the form;
-- controlled and uncontrolled values are normalized and clamped to `length`;
-- typing, full-code paste, and platform `autocomplete="one-time-code"` replacement are supported;
-- focus advances after valid input and redirects clicks on later empty slots to the first empty slot;
-- `Backspace`, `Delete`, arrow keys, `Home`, and `End` retain slot navigation;
-- only the first slot advertises one-time-code autocomplete; later slots use `off`;
-- native named form submission and reset are supported;
-- `autoSubmit` is opt-in and defaults to `false`.
-
-For numeric verification codes, use `validationType="numeric"`. The complete Base UI field defaults to numeric behavior. The MUI adapter defaults to `none` to preserve the historical MUI API.
-
-### Fork behavior retained
-
-The maintained MUI adapter keeps the behavior previously shipped by this fork:
-
-- `autoFocus={number}` for delayed focus;
-- `transformChar` before character validation;
-- `pastePreprocess="none" | "trim" | "digits-only" | function`;
-- stable native input refs and no empty-slot focus flicker.
-
-## Exports
-
-| Export                                           | Runtime UI peer                 |
-| ------------------------------------------------ | ------------------------------- |
-| `@wh1teee/mui-otp-input`                         | MUI + Emotion                   |
-| `@wh1teee/mui-otp-input/mui`                     | MUI + Emotion                   |
-| `@wh1teee/mui-otp-input/headless`                | none                            |
-| `@wh1teee/mui-otp-input/base-ui`                 | Base UI                         |
-| `@wh1teee/mui-otp-input/shadcn`                  | Base UI                         |
-| `@wh1teee/mui-otp-input/react-hook-form`         | MUI + Emotion + React Hook Form |
-| `@wh1teee/mui-otp-input/mui/react-hook-form`     | MUI + Emotion + React Hook Form |
-| `@wh1teee/mui-otp-input/base-ui/react-hook-form` | Base UI + React Hook Form       |
-| `@wh1teee/mui-otp-input/shadcn.css`              | opt-in stylesheet               |
-
-Renderer and form peers are optional at the package level. Missing peers fail only when their corresponding export is imported.
-
-## Bundle and Next.js behavior
-
-Exact-tarball CI bundles every entrypoint with React and renderer/form peers external, then enforces gzip and Brotli ceilings. Current package-owned gzip closures are approximately 0.7 KiB for `/headless`, 2.9 KiB for `/base-ui` and `/shadcn`, 3.8 KiB for MUI, 3.1 KiB for Base UI + React Hook Form, and 4.0 KiB for MUI + React Hook Form. The verifier also rejects MUI/Base UI leakage in either direction.
-
-UI entrypoints preserve `"use client"`; `/headless` has no React or renderer runtime. A production Next.js 16 App Router consumer installs the exact tarball, builds with Turbopack, renders server HTML, and checks that the shadcn closure contains no MUI or Emotion. No `transpilePackages`, `serverExternalPackages`, or experimental `optimizePackageImports` configuration is required.
-
-## Migration to v8
-
-This fork is synchronized with upstream v7, including MUI 9 support, while retaining the fork-specific input behavior above.
-
-Existing fork users can keep the root import. Applications that prefer an
-explicit renderer boundary may switch to the equivalent `/mui` subpath:
-
-```diff
-- import { MuiOtpInput } from '@wh1teee/mui-otp-input'
-+ import { MuiOtpInput } from '@wh1teee/mui-otp-input/mui'
-```
-
-Version 8 is the stable major for the maintained fork. It moves from the older v5 code line to upstream v7, adds MUI 9 qualification, and freezes explicit renderer boundaries. Existing root imports remain MUI-compatible.
-
-## Verification
-
-The repository verifies:
-
-- unit behavior and React Hook Form integration;
-- Chromium, Firefox, and WebKit typing, paste, autofill replacement, focus, native form, narrow viewport, and automated WCAG checks;
-- strict declarations and SSR/runtime execution from the exact packed tarball;
-- MUI 7 + React 18 and MUI 9 + React 19 consumers;
-- Base UI consumers without MUI/Emotion installed;
-- MUI consumers without Base UI installed;
-- renderer-isolated bundle closures and scoped shadcn CSS.
-
-Run the full pull-request gate with:
+## Development
 
 ```bash
-pnpm ci:pr
+pnpm install
+pnpm build
+pnpm --dir site dev   # documentation site
+pnpm ci:pr            # the full pull-request gate
 ```
 
-## License and attribution
+## License
 
-MIT. This maintained fork incorporates the original `viclafouch/mui-otp-input` work. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
-
-## TypeScript toolchain
-
-The package is checked and built by the stable native TypeScript 7 compiler.
-Build tools that still embed TypeScript's programmatic API receive Microsoft's
-official `@typescript/typescript6` compatibility package through an npm alias.
-This keeps `tsc` on 7.0.2 while tsdown, Docusaurus, and other compiler-embedding
-tools remain on a supported API until TypeScript 7 publishes a stable one.
-`pnpm verify:typescript` enforces the compiler, binary, and API boundary.
+MIT. This project continues
+[viclafouch/mui-otp-input](https://github.com/viclafouch/mui-otp-input); see
+[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

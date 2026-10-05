@@ -9,7 +9,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 
 assert.equal(manifest.name, '@wh1teee/mui-otp-input')
-assert.match(manifest.version, /^8\.0\.\d+(?:-next\.\d+)?$/u)
+assert.match(manifest.version, /^8\.\d+\.\d+(?:-next\.\d+)?$/u)
 assert.deepEqual(manifest.publishConfig, { access: 'public', provenance: true })
 assert.equal(manifest.publishConfig?.provenance, true)
 assert.equal(manifest.sideEffects?.length, 1)
@@ -45,6 +45,8 @@ for (const optionalPeer of [
   '@emotion/styled',
   '@mui/material',
   '@types/react',
+  'react',
+  'react-dom',
   'react-hook-form'
 ]) {
   assert.equal(

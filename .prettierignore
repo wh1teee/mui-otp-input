@@ -4,14 +4,10 @@
 ISSUE_TEMPLATE/**
 coverage/**
 dist/**
-docs/.docusaurus/**
-docs/build/**
-docs/static/**
+site/.next/**
+site/next-env.d.ts
+site/test-results/**
 mui-otp-input.gif
 node_modules/**
 storybook-static/**
 .storybook/preview-head.html
-docs/src/css/custom.css
-docs/src/css/index.css
-docs/src/pages/index.module.css
-docs/tsconfig.json

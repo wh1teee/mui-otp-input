@@ -33,10 +33,23 @@ function normalizeLength(length: number | undefined) {
   return length
 }
 
+// One slot holds one UTF-16 unit in Base UI, so characters outside the Basic
+// Multilingual Plane (emoji and similar) are never valid code characters —
+// neither whole nor as the lone surrogate halves some keyboards deliver.
+function isSingleUnit(character: string) {
+  const code = character.charCodeAt(0)
+
+  return character.length === 1 && (code < 0xd8_00 || code > 0xdf_ff)
+}
+
 function matchesValidationType(
   character: string,
   validationType: OtpValidationType
 ) {
+  if (!isSingleUnit(character)) {
+    return false
+  }
+
   switch (validationType) {
     case 'numeric':
       return /^[0-9]$/u.test(character)

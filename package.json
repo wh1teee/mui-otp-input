@@ -6,9 +6,9 @@
   "bugs": {
     "url": "https://github.com/wh1teee/mui-otp-input/issues"
   },
-  "homepage": "https://github.com/wh1teee/mui-otp-input#readme",
+  "homepage": "https://mui-otp-input-docs.vercel.app",
   "type": "module",
-  "version": "8.0.1",
+  "version": "8.1.0",
   "files": [
     "dist",
     "README.md",
@@ -102,7 +102,7 @@
     "test:unit": "vitest run --config vite.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "verify:consumers": "node scripts/verify-packed-consumers.mjs",
-    "verify:docs": "pnpm --dir docs build && pnpm build:storybook",
+    "verify:docs": "pnpm --dir site typecheck && pnpm --dir site build && pnpm --dir site test && pnpm build:storybook",
     "verify:entrypoint-bundles": "node scripts/verify-entrypoint-bundles.mjs",
     "verify:next-consumer": "node scripts/verify-packed-next-consumer.mjs",
     "verify:package": "node scripts/verify-package.mjs",
@@ -132,6 +132,12 @@
       "optional": true
     },
     "@types/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
       "optional": true
     },
     "react-hook-form": {

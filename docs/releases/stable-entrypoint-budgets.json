@@ -16,8 +16,8 @@
   "profiles": {
     "index": {
       "renderer": "mui",
-      "gzipLimit": 4500,
-      "brotliLimit": 4000
+      "gzipLimit": 4700,
+      "brotliLimit": 4150
     },
     "headless": {
       "renderer": "headless",
@@ -26,18 +26,18 @@
     },
     "base-ui": {
       "renderer": "base-ui",
-      "gzipLimit": 3500,
-      "brotliLimit": 3100
+      "gzipLimit": 3650,
+      "brotliLimit": 3250
     },
     "shadcn": {
       "renderer": "base-ui",
-      "gzipLimit": 3500,
-      "brotliLimit": 3100
+      "gzipLimit": 3650,
+      "brotliLimit": 3250
     },
     "react-hook-form": {
       "renderer": "mui-rhf",
-      "gzipLimit": 4900,
-      "brotliLimit": 4300
+      "gzipLimit": 5150,
+      "brotliLimit": 4550
     },
     "base-ui/react-hook-form": {
       "renderer": "base-ui-rhf",

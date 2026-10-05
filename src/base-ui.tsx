@@ -6,6 +6,7 @@ import { mergeRefs } from './internal/merge-refs'
 import {
   OtpBehaviorRoot,
   type OtpBehaviorRootProps,
+  preventBaseUiHandler,
   useOtpSlotAdapter
 } from './internal/otp-behavior-root'
 
@@ -41,27 +42,109 @@ export const InputOTPSlot = React.forwardRef<
   HTMLInputElement,
   InputOTPSlotProps
 >(function InputOTPSlot(
-  { index, onMouseDown, onPaste, ...props },
+  {
+    index,
+    onChange,
+    onCompositionEnd,
+    onKeyDown,
+    onMouseDown,
+    onPaste,
+    ...props
+  },
   forwardedRef
 ) {
   const adapter = useOtpSlotAdapter(index)
   const inputRef = React.useMemo(() => {
     return mergeRefs(adapter.ref, forwardedRef)
   }, [adapter.ref, forwardedRef])
+  // While an IME composes, the slot shows the composition text so React does
+  // not reset the input mid-composition; Base UI sees only the final text.
+  const [composition, setComposition] = React.useState<null | string>(null)
+  const committingComposition = React.useRef(false)
 
   return (
     <OTPField.Input
       {...props}
+      {...(composition === null ? {} : { value: composition })}
       ref={inputRef}
       autoFocus={adapter.autoFocus}
       data-slot="input-otp-slot"
+      onChange={(event) => {
+        onChange?.(event)
+
+        if ((event.nativeEvent as InputEvent).isComposing) {
+          setComposition(event.currentTarget.value)
+          preventBaseUiHandler(event)
+
+          return
+        }
+
+        adapter.markInput(event.currentTarget.value)
+      }}
+      onCompositionEnd={(event) => {
+        onCompositionEnd?.(event)
+        const input = event.currentTarget
+        const text = input.value
+        setComposition(null)
+
+        if (!text) {
+          return
+        }
+
+        // Base UI exposes no way to commit text, so the composed text goes
+        // through its paste path, marked as typed input (no paste cleanup).
+        const commit = new Event('paste', { bubbles: true, cancelable: true })
+        Object.defineProperty(commit, 'clipboardData', {
+          value: {
+            getData(type: string) {
+              return type === 'text/plain' ? text : ''
+            }
+          }
+        })
+        committingComposition.current = true
+        input.dispatchEvent(commit)
+        committingComposition.current = false
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+
+        // Keys during IME composition belong to the IME.
+        if (event.nativeEvent.isComposing) {
+          preventBaseUiHandler(event)
+
+          return
+        }
+
+        // Base UI only honors the root's readOnly; a read-only slot keeps its value.
+        if (
+          event.currentTarget.readOnly &&
+          (event.key === 'Backspace' || event.key === 'Delete')
+        ) {
+          event.preventDefault()
+          preventBaseUiHandler(event)
+        }
+      }}
       onMouseDown={(event) => {
         onMouseDown?.(event)
         adapter.onMouseDown(event)
       }}
       onPaste={(event) => {
-        adapter.onPaste()
         onPaste?.(event)
+
+        if (event.currentTarget.readOnly) {
+          event.preventDefault()
+          preventBaseUiHandler(event)
+
+          return
+        }
+
+        const text = event.clipboardData.getData('text/plain')
+
+        if (committingComposition.current) {
+          adapter.markInput(text)
+        } else {
+          adapter.markPaste(text)
+        }
       }}
     />
   )
@@ -214,7 +297,11 @@ function OtpFieldSlot({
       <InputOTPSlot
         {...resolvedSlotProps}
         index={index}
-        aria-describedby={descriptionId}
+        aria-describedby={
+          [resolvedSlotProps['aria-describedby'], descriptionId]
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
         aria-invalid={error || resolvedSlotProps['aria-invalid']}
         aria-label={accessibleLabel}
         className={resolvedSlotProps.className ?? classNames.slot}
