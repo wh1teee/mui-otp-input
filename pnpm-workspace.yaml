@@ -26,3 +26,8 @@ packageExtensions:
   '@emotion/utils@>=1.4.2 <2':
     dependencies:
       '@emotion/sheet': ^1.4.0
+
+overrides:
+  # Build-time dependencies of Next.js in site/; not part of the published package.
+  '@babel/core': 7.29.6
+  'browserslist@<4.28.7': 4.28.7

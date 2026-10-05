@@ -1,9 +1,15 @@
 import React from 'react'
 import { useForm } from 'react-hook-form'
+import axe from 'axe-core'
 import { expect, test, vi } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
-import { OtpInput } from '../../src/base-ui'
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  OtpInput
+} from '../../src/base-ui'
 import { OtpInputController } from '../../src/base-ui-react-hook-form'
 import { MuiOtpInput } from '../../src/mui'
 import { MuiOtpInputController } from '../../src/react-hook-form'
@@ -468,4 +474,38 @@ test('IME composition commits once it ends in both renderers', async () => {
   await expect
     .element(page.getByRole('textbox', { name: 'Base 2/2' }))
     .toHaveFocus()
+})
+
+test('the documented primitives example has no accessibility violations', async () => {
+  // Mirrors the README and site example: a visible label plus slot names.
+  await render(
+    <>
+      <label htmlFor="code">Verification code</label>
+      <InputOTP id="code" length={4}>
+        <InputOTPGroup>
+          {[0, 1, 2, 3].map((index) => {
+            return (
+              <InputOTPSlot
+                key={index}
+                index={index}
+                aria-label={`Digit ${index + 1} of 4`}
+              />
+            )
+          })}
+        </InputOTPGroup>
+      </InputOTP>
+    </>
+  )
+
+  const result = await axe.run(document.body, {
+    runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] }
+  })
+  expect(
+    result.violations.map((violation) => {
+      return violation.id
+    })
+  ).toEqual([])
+  await expect
+    .element(page.getByRole('textbox', { name: 'Verification code' }).first())
+    .toBeVisible()
 })
