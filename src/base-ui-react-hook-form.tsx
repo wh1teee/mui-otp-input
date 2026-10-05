@@ -64,8 +64,12 @@ export function OtpInputController<
             inputRef={field.ref}
             name={field.name}
             onBlur={(event) => {
-              field.onBlur()
               onBlur?.(event)
+
+              // Moving between slots is not leaving the field.
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                field.onBlur()
+              }
             }}
             onValueChange={field.onChange}
             value={(field.value as string | undefined) ?? ''}

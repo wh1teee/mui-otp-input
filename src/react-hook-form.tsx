@@ -1,6 +1,6 @@
 'use client'
 
-import type React from 'react'
+import React from 'react'
 import {
   Controller,
   type ControllerProps,
@@ -42,6 +42,11 @@ export function MuiOtpInputController<
   shouldUnregister,
   ...props
 }: MuiOtpInputControllerProps<TValues, TName>): React.ReactElement {
+  const generatedId = React.useId()
+  const firstSlotId = `${generatedId}-slot-1`
+  // MUI derives the helper text id from the TextField id.
+  const helperTextId = `${firstSlotId}-helper-text`
+
   return (
     <Controller<TValues, TName>
       control={control}
@@ -69,16 +74,46 @@ export function MuiOtpInputController<
                 (typeof userTextFieldsProps === 'function'
                   ? userTextFieldsProps(index)
                   : userTextFieldsProps) ?? {}
+              const message =
+                fieldState.error?.message ?? helperText ?? resolved.helperText
 
+              if (index === 0) {
+                return {
+                  ...resolved,
+                  error: Boolean(error || fieldState.error || resolved.error),
+                  helperText: message,
+                  id: firstSlotId
+                }
+              }
+
+              // The message renders under the first slot; every slot points to it.
               return {
                 ...resolved,
                 error: Boolean(error || fieldState.error || resolved.error),
-                helperText:
-                  index === 0
-                    ? (fieldState.error?.message ??
-                      helperText ??
-                      resolved.helperText)
-                    : resolved.helperText
+                slotProps: message
+                  ? {
+                      ...resolved.slotProps,
+                      htmlInput: (ownerState: never) => {
+                        const userHtmlInput = resolved.slotProps?.htmlInput
+                        const resolvedHtmlInput = ((typeof userHtmlInput ===
+                        'function'
+                          ? userHtmlInput(ownerState)
+                          : userHtmlInput) ??
+                          {}) as React.InputHTMLAttributes<HTMLInputElement>
+
+                        return {
+                          ...resolvedHtmlInput,
+                          'aria-describedby':
+                            [
+                              resolvedHtmlInput['aria-describedby'],
+                              helperTextId
+                            ]
+                              .filter(Boolean)
+                              .join(' ') || undefined
+                        }
+                      }
+                    }
+                  : resolved.slotProps
               }
             }}
             value={(field.value as string | undefined) ?? ''}

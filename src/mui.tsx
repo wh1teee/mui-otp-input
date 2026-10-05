@@ -15,9 +15,11 @@ import { mergeRefs } from './internal/merge-refs'
 
 const BASE_BOX_SX = {
   alignItems: 'center',
-  display: 'flex',
-  gap: '20px'
+  display: 'flex'
 } as const
+
+// Up to 20px between slots, narrowing with the field so digits stay readable.
+const DEFAULT_GAP_SX = { gap: 'clamp(4px, 4.5%, 20px)' } as const
 
 const visuallyHidden = {
   border: 0,
@@ -52,6 +54,45 @@ function resolveInputMode(
   }
 }
 
+interface NavigationInput {
+  boundaryModifier: boolean
+  filledLength: number
+  index: number
+  key: string
+  length: number
+  rtl: boolean
+}
+
+/** The slot a navigation key moves to, or null for any other key. */
+function resolveNavigationTarget({
+  boundaryModifier,
+  filledLength,
+  index,
+  key,
+  length,
+  rtl
+}: NavigationInput) {
+  const end = Math.min(filledLength, length - 1)
+
+  if (key === (rtl ? 'ArrowRight' : 'ArrowLeft')) {
+    return boundaryModifier ? 0 : index - 1
+  }
+
+  if (key === (rtl ? 'ArrowLeft' : 'ArrowRight')) {
+    return boundaryModifier ? end : index + 1
+  }
+
+  if (key === 'Home' || key === 'ArrowUp') {
+    return 0
+  }
+
+  if (key === 'End' || key === 'ArrowDown') {
+    return end
+  }
+
+  return null
+}
+
 interface MuiOtpSlotProps {
   autoComplete: string
   autoFocus: boolean
@@ -66,6 +107,8 @@ interface MuiOtpSlotProps {
   onChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ): void
+  onCompositionEnd(event: React.CompositionEvent<HTMLDivElement>): void
+  onFocus(): void
   onKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void
   onPaste(event: React.ClipboardEvent<HTMLDivElement>): void
   onPointerDown(event: React.PointerEvent<HTMLDivElement>): void
@@ -73,6 +116,7 @@ interface MuiOtpSlotProps {
   required: boolean
   rootInputRef?: React.Ref<HTMLInputElement>
   slotLabel: string
+  tabIndex: number
   textFieldProps: MuiOtpTextFieldProps
   value: string
 }
@@ -89,6 +133,8 @@ function MuiOtpSlot({
   mask,
   onBlur,
   onChange,
+  onCompositionEnd,
+  onFocus,
   onKeyDown,
   onPaste,
   onPointerDown,
@@ -96,6 +142,7 @@ function MuiOtpSlot({
   required,
   rootInputRef,
   slotLabel,
+  tabIndex,
   textFieldProps,
   value
 }: MuiOtpSlotProps) {
@@ -103,6 +150,7 @@ function MuiOtpSlot({
     className,
     inputRef,
     onBlur: userOnBlur,
+    onCompositionEnd: userOnCompositionEnd,
     onFocus: userOnFocus,
     onKeyDown: userOnKeyDown,
     onPaste: userOnPaste,
@@ -133,8 +181,13 @@ function MuiOtpSlot({
       onChange={(event) => {
         onChange(event)
       }}
+      onCompositionEnd={(event) => {
+        userOnCompositionEnd?.(event)
+        onCompositionEnd(event)
+      }}
       onFocus={(event) => {
         event.target.select()
+        onFocus()
         userOnFocus?.(event)
       }}
       onKeyDown={(event) => {
@@ -173,9 +226,13 @@ function MuiOtpSlot({
             autoComplete: index === 0 ? autoComplete : 'off',
             form,
             inputMode,
-            maxLength: index === 0 ? length : 1,
+            // One spare character lets typing overwrite a filled slot when
+            // the caret is not on a selection; the first slot also receives
+            // whole autofilled codes.
+            maxLength: index === 0 ? length + 1 : 2,
             readOnly: readOnly || userHtmlInput.readOnly,
-            type: mask ? 'password' : 'text'
+            tabIndex: userHtmlInput.tabIndex ?? tabIndex,
+            type: mask ? 'password' : (restTextFieldProps.type ?? 'text')
           }
         }
       }}
@@ -247,23 +304,49 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
       validateChar,
       validationType
     ])
+    // Stored values are already canonical: validate them by position, but
+    // transform only what the user types, pastes, or autofills.
+    const canonicalOptions = React.useMemo(() => {
+      return {
+        length,
+        normalizeValue: customNormalizeValue,
+        validateChar,
+        validationType
+      }
+    }, [customNormalizeValue, length, validateChar, validationType])
     const initialValueRef = React.useRef<string | null>(null)
 
     if (initialValueRef.current === null) {
-      initialValueRef.current = normalizeOtpValue(defaultValue, options)
+      initialValueRef.current = normalizeOtpValue(
+        defaultValue,
+        canonicalOptions
+      )
     }
 
     const controlled = controlledValue !== undefined
     const [uncontrolledValue, setUncontrolledValue] = React.useState(
       initialValueRef.current
     )
-    const value = controlled
-      ? normalizeOtpValue(controlledValue, options)
-      : uncontrolledValue
+    // Re-normalizing the uncontrolled value keeps it within a shorter length.
+    const value = normalizeOtpValue(
+      controlled ? controlledValue : uncontrolledValue,
+      canonicalOptions
+    )
+    const slotCharacters = Array.from(value)
     const valueRef = React.useRef(value)
     valueRef.current = value
     const inputMode = resolveInputMode(inputModeProp, validationType)
-    const initialCompletionChecked = React.useRef(false)
+    // Only the active slot is in the tab order, as in the Base UI field:
+    // Tab moves past the whole code instead of through every slot.
+    const [focusedIndex, setFocusedIndex] = React.useState<null | number>(null)
+    const activeIndex =
+      focusedIndex ?? Math.min(slotCharacters.length, length - 1)
+    // While an IME composes, the slot shows the composition text so React
+    // does not reset the input mid-composition.
+    const [composition, setComposition] = React.useState<null | {
+      index: number
+      text: string
+    }>(null)
 
     const focusInput = React.useCallback(
       (index: number) => {
@@ -308,7 +391,7 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
       ) => {
         void reason
         void event
-        const nextValue = normalizeOtpValue(candidate, options)
+        const nextValue = normalizeOtpValue(candidate, canonicalOptions)
         const previousValue = valueRef.current
 
         if (!controlled) {
@@ -329,8 +412,19 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
 
         return nextValue
       },
-      [controlled, length, onChange, onComplete, options, requestSubmit]
+      [
+        canonicalOptions,
+        controlled,
+        length,
+        onChange,
+        onComplete,
+        requestSubmit
+      ]
     )
+
+    // Kept from the original package: a value that starts complete reports
+    // completion once on mount. The Base UI field reports only user input.
+    const initialCompletionChecked = React.useRef(false)
 
     React.useEffect(() => {
       if (initialCompletionChecked.current) {
@@ -372,10 +466,17 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
         return
       }
 
-      const handleReset = () => {
-        const initialValue = initialValueRef.current ?? ''
-        setUncontrolledValue(initialValue)
-        valueRef.current = initialValue
+      const handleReset = (event: Event) => {
+        // A later listener may still cancel the reset; decide after dispatch.
+        queueMicrotask(() => {
+          if (event.defaultPrevented) {
+            return
+          }
+
+          const initialValue = initialValueRef.current ?? ''
+          setUncontrolledValue(initialValue)
+          valueRef.current = initialValue
+        })
       }
 
       associatedForm.addEventListener('reset', handleReset)
@@ -385,72 +486,110 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
       }
     }, [controlled, form, stableInputRefs])
 
-    const handleOneInputChange = React.useCallback(
-      (
-        index: number,
-        event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      ) => {
-        if (disabled || readOnly) {
+    const handleSlotInput = React.useCallback(
+      (index: number, input: HTMLInputElement, nativeEvent: Event) => {
+        if (disabled || readOnly || input.readOnly) {
           return
         }
 
-        const input = event.currentTarget as HTMLInputElement
-        const rawValue = input.value
+        const current = Array.from(valueRef.current)
+        const currentCharacter = current[index] ?? ''
+        let rawValue = input.value
 
-        if (rawValue.length > 1) {
-          const processed = preprocessOtpPaste(rawValue, pastePreprocess)
-          const normalized = normalizeOtpValue(processed, options)
+        // Typing into a filled slot overwrites it, wherever the caret was:
+        // Safari keeps the caret instead of selecting the slot on click.
+        const { data, inputType } = nativeEvent as InputEvent
 
-          if (
-            normalized !== processed.replaceAll(/\s/gu, '').slice(0, length)
-          ) {
-            onInvalid?.(rawValue, {
-              event: event.nativeEvent,
-              reason: 'input-change'
-            })
+        if (
+          inputType === 'insertText' &&
+          currentCharacter &&
+          data &&
+          Array.from(rawValue).length > 1
+        ) {
+          rawValue = data
+        }
+
+        const rawCharacters = Array.from(rawValue)
+
+        if (rawCharacters.length === 0) {
+          current.splice(index, 1)
+          const nextValue = commitValue(
+            current.join(''),
+            'keyboard',
+            nativeEvent
+          )
+
+          if (index > 0 && Array.from(nextValue).length <= index) {
+            focusInput(index - 1)
           }
 
-          const nextValue = commitValue(
-            normalized,
-            'input-change',
-            event.nativeEvent
-          )
-          focusInput(Math.max(0, Math.min(nextValue.length, length) - 1))
+          return
+        }
+
+        if (rawCharacters.length === 1) {
+          const character = normalizeOtpCharacter(rawCharacters[0], index, {
+            transformChar,
+            validateChar,
+            validationType
+          })
+
+          if (!character) {
+            // Rejected input never changes the value; React restores the slot.
+            onInvalid?.(rawValue, {
+              event: nativeEvent,
+              reason: 'input-change'
+            })
+            queueMicrotask(() => {
+              return input.select()
+            })
+
+            return
+          }
+
+          current[index] = character
+          commitValue(current.join(''), 'input-change', nativeEvent)
+          focusInput(index + 1)
 
           return
         }
 
-        const sourceCharacter = rawValue[0] ?? ''
-        const character = sourceCharacter
-          ? normalizeOtpCharacter(sourceCharacter, index, {
-              transformChar,
-              validateChar,
-              validationType
-            })
-          : ''
+        // Several characters at once: an autofilled or dropped code. The first
+        // slot replaces the whole value; later slots fill from their position.
+        const processed = preprocessOtpPaste(rawValue, pastePreprocess)
+        const fragment = normalizeOtpValue(processed, {
+          indexOffset: index,
+          length: length - index,
+          transformChar,
+          validateChar,
+          validationType
+        })
+        const expected = Array.from(processed.replaceAll(/\s/gu, ''))
+          .slice(0, length - index)
+          .join('')
 
-        if (sourceCharacter && !character) {
-          onInvalid?.(sourceCharacter, {
-            event: event.nativeEvent,
-            reason: 'input-change'
-          })
+        if (fragment !== expected) {
+          onInvalid?.(rawValue, { event: nativeEvent, reason: 'input-change' })
         }
 
-        const characters = Array.from(
-          valueRef.current.padEnd(length, '')
-        ).slice(0, length)
-        characters[index] = character
+        if (!fragment) {
+          return
+        }
+
+        const fragmentCharacters = Array.from(fragment)
+        const nextCharacters =
+          index === 0
+            ? fragmentCharacters
+            : [
+                ...current.slice(0, index),
+                ...fragmentCharacters,
+                ...current.slice(index + fragmentCharacters.length)
+              ]
         const nextValue = commitValue(
-          characters.join(''),
-          character ? 'input-change' : 'keyboard',
-          event.nativeEvent
+          nextCharacters.join(''),
+          'input-change',
+          nativeEvent
         )
-
-        if (character) {
-          focusInput(Math.min(index + 1, length - 1))
-        } else if (index > 0 && nextValue.length <= index) {
-          focusInput(index - 1)
-        }
+        focusInput(Math.min(Array.from(nextValue).length, length - 1))
       },
       [
         commitValue,
@@ -458,7 +597,6 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
         focusInput,
         length,
         onInvalid,
-        options,
         pastePreprocess,
         readOnly,
         transformChar,
@@ -467,9 +605,34 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
       ]
     )
 
+    const handleOneInputChange = React.useCallback(
+      (
+        index: number,
+        event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+      ) => {
+        // An IME is still composing; commit once composition ends.
+        if ((event.nativeEvent as InputEvent).isComposing) {
+          setComposition({ index, text: event.currentTarget.value })
+
+          return
+        }
+
+        handleSlotInput(
+          index,
+          event.currentTarget as HTMLInputElement,
+          event.nativeEvent
+        )
+      },
+      [handleSlotInput]
+    )
+
     const handleOneInputPaste = React.useCallback(
       (index: number, event: React.ClipboardEvent<HTMLDivElement>) => {
-        if (disabled || readOnly) {
+        if (
+          disabled ||
+          readOnly ||
+          (event.target as HTMLInputElement).readOnly
+        ) {
           return
         }
 
@@ -486,7 +649,9 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
 
         if (
           normalized !==
-          processed.replaceAll(/\s/gu, '').slice(0, availableLength)
+          Array.from(processed.replaceAll(/\s/gu, ''))
+            .slice(0, availableLength)
+            .join('')
         ) {
           onInvalid?.(rawValue, {
             event: event.nativeEvent,
@@ -494,17 +659,14 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
           })
         }
 
-        const current = Array.from(valueRef.current.padEnd(length, '')).slice(
-          0,
-          length
-        )
+        const current = Array.from(valueRef.current).slice(0, length)
 
         for (const [offset, character] of Array.from(normalized).entries()) {
           current[index + offset] = character
         }
 
         commitValue(current.join(''), 'input-paste', event.nativeEvent, true)
-        focusInput(Math.min(index + normalized.length, length - 1))
+        focusInput(Math.min(index + Array.from(normalized).length, length - 1))
       },
       [
         commitValue,
@@ -524,46 +686,37 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
           return
         }
 
+        // Keys during IME composition belong to the IME.
+        if (event.nativeEvent.isComposing) {
+          return
+        }
+
         const input = event.target as HTMLInputElement
         const selected =
           input.selectionStart === 0 &&
           input.selectionEnd === input.value.length
         const boundaryModifier =
           (event.ctrlKey || event.metaKey) && !event.altKey
+        const navigationTarget = resolveNavigationTarget({
+          boundaryModifier,
+          filledLength: Array.from(valueRef.current).length,
+          index,
+          key: event.key,
+          length,
+          // Arrow keys follow the visual order, which RTL reverses.
+          rtl:
+            rootRef.current !== null &&
+            getComputedStyle(rootRef.current).direction === 'rtl'
+        })
 
-        if (event.key === 'ArrowLeft') {
+        if (navigationTarget !== null) {
           event.preventDefault()
-          focusInput(boundaryModifier ? 0 : index - 1)
+          focusInput(navigationTarget)
 
           return
         }
 
-        if (event.key === 'ArrowRight') {
-          event.preventDefault()
-          focusInput(
-            boundaryModifier
-              ? Math.min(valueRef.current.length, length - 1)
-              : index + 1
-          )
-
-          return
-        }
-
-        if (event.key === 'Home' || event.key === 'ArrowUp') {
-          event.preventDefault()
-          focusInput(0)
-
-          return
-        }
-
-        if (event.key === 'End' || event.key === 'ArrowDown') {
-          event.preventDefault()
-          focusInput(Math.min(valueRef.current.length, length - 1))
-
-          return
-        }
-
-        if (readOnly) {
+        if (readOnly || input.readOnly) {
           return
         }
 
@@ -597,11 +750,14 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
           return
         }
 
+        // As in the Base UI field: delete this slot's character, or the
+        // previous one when this slot is empty, and step back.
         const characters = Array.from(valueRef.current)
-        const deleteIndex = input.value ? index : Math.max(0, index - 1)
+        const targetIndex = Math.max(0, index - 1)
+        const deleteIndex = input.value ? index : targetIndex
         characters.splice(deleteIndex, 1)
         commitValue(characters.join(''), 'keyboard', event.nativeEvent)
-        focusInput(deleteIndex)
+        focusInput(targetIndex)
       },
       [commitValue, disabled, focusInput, length, readOnly]
     )
@@ -632,6 +788,7 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
         })
 
         if (!stillInside) {
+          setFocusedIndex(null)
           onBlur?.(valueRef.current, isOtpComplete(valueRef.current, length))
         }
       },
@@ -639,15 +796,21 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
     )
 
     const sxItems = sx ? [sx].flat() : []
+    // MUI 9 no longer applies Box system props, so a `gap` prop is moved
+    // into sx where both MUI 7 and 9 honor it over the default spacing.
+    const { gap, ...boxProps } = restBoxProps as typeof restBoxProps & {
+      gap?: React.CSSProperties['gap']
+    }
+    const defaultSx = gap === undefined ? [DEFAULT_GAP_SX] : [{ gap }]
 
     return (
       <Box
-        {...restBoxProps}
+        {...boxProps}
         ref={mergedRootRef}
-        aria-label={restBoxProps['aria-label'] ?? ariaLabel}
+        aria-label={boxProps['aria-label'] ?? ariaLabel}
         className={joinClassNames('MuiOtpInput-Box', className)}
-        role={restBoxProps.role ?? 'group'}
-        sx={[BASE_BOX_SX, ...sxItems]}
+        role={boxProps.role ?? 'group'}
+        sx={[BASE_BOX_SX, ...defaultSx, ...sxItems]}
       >
         {Array.from({ length }, (_, index) => {
           const resolvedTextFieldProps =
@@ -675,6 +838,18 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
               onChange={(event) => {
                 return handleOneInputChange(index, event)
               }}
+              onCompositionEnd={(event) => {
+                setComposition(null)
+
+                return handleSlotInput(
+                  index,
+                  event.target as HTMLInputElement,
+                  event.nativeEvent
+                )
+              }}
+              onFocus={() => {
+                return setFocusedIndex(index)
+              }}
               onKeyDown={(event) => {
                 return handleOneInputKeyDown(index, event)
               }}
@@ -688,8 +863,13 @@ export const MuiOtpInput = React.forwardRef<HTMLDivElement, MuiOtpInputProps>(
               required={required}
               rootInputRef={index === 0 ? inputRef : undefined}
               slotLabel={slotLabel}
+              tabIndex={activeIndex === index ? 0 : -1}
               textFieldProps={resolvedTextFieldProps}
-              value={value[index] ?? ''}
+              value={
+                composition?.index === index
+                  ? composition.text
+                  : (slotCharacters[index] ?? '')
+              }
             />
           )
         })}

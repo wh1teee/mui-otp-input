@@ -34,8 +34,24 @@ type OtpAdapterContextValue = {
     index: number,
     event: React.MouseEvent<HTMLInputElement>
   ): void
-  markPaste(): void
+  markRawInput(index: number, kind: RawInputKind, text: string): void
   registerInput(index: number, input: HTMLInputElement | null): void
+}
+
+type RawInputKind = 'input' | 'paste'
+
+/**
+ * Base UI calls `normalizeValue` for the raw slot text, again for the accepted
+ * fragment, and then for the merged and rendered value. Index-aware rules and
+ * `transformChar` belong to the raw text only, so the slot that received it is
+ * recorded here until Base UI has normalized that text.
+ */
+type RawInput = {
+  index: number
+  kind: RawInputKind
+  output: null | string
+  // Base UI strips whitespace before calling `normalizeValue`.
+  text: string
 }
 
 const OtpAdapterContext = React.createContext<OtpAdapterContextValue | null>(
@@ -92,8 +108,7 @@ export const OtpBehaviorRoot = React.forwardRef<
   const inputRefs = React.useRef<(HTMLInputElement | null)[]>([])
   const inputRefCleanup = React.useRef<undefined | (() => void)>(undefined)
   const inputRefAssigned = React.useRef(false)
-  const normalizationContext = React.useRef<'paste' | 'value'>('value')
-  const pasteGeneration = React.useRef(0)
+  const rawInput = React.useRef<null | RawInput>(null)
 
   const registerInput = React.useCallback(
     (index: number, input: HTMLInputElement | null) => {
@@ -149,32 +164,59 @@ export const OtpBehaviorRoot = React.forwardRef<
     [focusInput]
   )
 
-  const markPaste = React.useCallback(() => {
-    normalizationContext.current = 'paste'
-    pasteGeneration.current += 1
-    const generation = pasteGeneration.current
-
-    queueMicrotask(() => {
-      if (pasteGeneration.current === generation) {
-        normalizationContext.current = 'value'
+  const markRawInput = React.useCallback(
+    (index: number, kind: RawInputKind, text: string) => {
+      const marker: RawInput = {
+        index,
+        kind,
+        output: null,
+        text: text.replaceAll(/\s/gu, '')
       }
-    })
-  }, [])
+      rawInput.current = marker
+
+      // Base UI normalizes synchronously inside the same event handler.
+      queueMicrotask(() => {
+        if (rawInput.current === marker) {
+          rawInput.current = null
+        }
+      })
+    },
+    []
+  )
 
   const normalizer = React.useCallback(
-    (candidate: string) =>
-      normalizeOtpValue(
-        normalizationContext.current === 'paste'
-          ? preprocessOtpPaste(candidate, pastePreprocess)
-          : candidate,
-        {
-          length: rootProps.length,
-          normalizeValue: customNormalizeValue,
+    (candidate: string) => {
+      const marker = rawInput.current
+
+      if (marker && marker.output === null && candidate === marker.text) {
+        const text =
+          marker.kind === 'paste'
+            ? preprocessOtpPaste(candidate, pastePreprocess)
+            : candidate
+        marker.output = normalizeOtpValue(text, {
+          indexOffset: marker.index,
+          length: rootProps.length - marker.index,
           transformChar,
           validateChar,
           validationType
-        }
-      ),
+        })
+
+        return marker.output
+      }
+
+      // The accepted fragment is normalized once more before it is merged.
+      if (marker && candidate === marker.output) {
+        return candidate
+      }
+
+      // Canonical values are validated by position but never transformed again.
+      return normalizeOtpValue(candidate, {
+        length: rootProps.length,
+        normalizeValue: customNormalizeValue,
+        validateChar,
+        validationType
+      })
+    },
     [
       customNormalizeValue,
       pastePreprocess,
@@ -198,10 +240,12 @@ export const OtpBehaviorRoot = React.forwardRef<
     NonNullable<RootProps['onValueChange']>
   >(
     (nextValue, details) => {
-      if (!controlled) {
+      // The caller may cancel the change; only then is local state skipped.
+      onValueChange?.(nextValue, details)
+
+      if (!controlled && !details.isCanceled) {
         setUncontrolledValue(nextValue)
       }
-      onValueChange?.(nextValue, details)
     },
     [controlled, onValueChange]
   )
@@ -228,8 +272,13 @@ export const OtpBehaviorRoot = React.forwardRef<
       return () => undefined
     }
 
-    const handleReset = () => {
-      setUncontrolledValue(initialValue)
+    const handleReset = (event: Event) => {
+      // A later listener may still cancel the reset; decide after dispatch.
+      queueMicrotask(() => {
+        if (!event.defaultPrevented) {
+          setUncontrolledValue(initialValue)
+        }
+      })
     }
     associatedForm.addEventListener('reset', handleReset)
     return () => associatedForm.removeEventListener('reset', handleReset)
@@ -258,10 +307,10 @@ export const OtpBehaviorRoot = React.forwardRef<
       autoFocus,
       focusFirstInput,
       handleMouseDown,
-      markPaste,
+      markRawInput,
       registerInput
     }),
-    [autoFocus, focusFirstInput, handleMouseDown, markPaste, registerInput]
+    [autoFocus, focusFirstInput, handleMouseDown, markRawInput, registerInput]
   )
 
   return (
@@ -289,6 +338,8 @@ export const OtpBehaviorRoot = React.forwardRef<
   )
 })
 
+export { preventBaseUiHandler }
+
 export function useOtpSlotAdapter(index: number) {
   const context = React.useContext(OtpAdapterContext)
   if (!context) {
@@ -300,8 +351,11 @@ export function useOtpSlotAdapter(index: number) {
     onMouseDown(event: React.MouseEvent<HTMLInputElement>) {
       context.handleMouseDown(index, event)
     },
-    onPaste() {
-      context.markPaste()
+    markInput(text: string) {
+      context.markRawInput(index, 'input', text)
+    },
+    markPaste(text: string) {
+      context.markRawInput(index, 'paste', text)
     },
     ref(input: HTMLInputElement | null) {
       context.registerInput(index, input)
