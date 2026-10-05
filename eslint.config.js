@@ -23,7 +23,8 @@ export default [
       '**/build/**',
       '**/storybook-static/**',
       'scripts/**',
-      'docs/**'
+      'docs/**',
+      'site/**'
     ]
   },
   ...typescriptConfig,

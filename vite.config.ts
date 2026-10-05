@@ -6,7 +6,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    exclude: [...configDefaults.exclude, '**/dist/**', 'tests/browser/**']
+    exclude: [
+      ...configDefaults.exclude,
+      '**/dist/**',
+      'tests/browser/**',
+      'site/**'
+    ]
   },
   resolve: {
     alias: {

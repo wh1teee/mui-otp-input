@@ -25,3 +25,9 @@ dist-ssr
 coverage
 .vitest
 storybook-static
+
+# Next.js site
+.next
+site/test-results
+.vercel
+*.tsbuildinfo
