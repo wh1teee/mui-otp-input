@@ -212,7 +212,8 @@ export function Configurator() {
         <div>
           <h2 id="configurator-title">Configurator</h2>
           <p>
-            Every control maps to a prop. The code on the right is what you see.
+            Every control maps to a prop, and the generated code matches the
+            preview.
           </p>
         </div>
       </div>

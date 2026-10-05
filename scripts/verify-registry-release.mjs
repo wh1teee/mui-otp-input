@@ -37,7 +37,9 @@ function execute(command, args, options = {}) {
   })
 }
 
-async function retry(description, operation, attempts = 12) {
+// npm can take several minutes to serve a new version everywhere; 8.1.0
+// needed more than the previous two-minute window.
+async function retry(description, operation, attempts = 30) {
   let lastFailure
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const result = operation()
