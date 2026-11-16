@@ -5,6 +5,7 @@ import {
   CodeBlock,
   DocsLayout,
   DocsShell,
+  REPOSITORY_URL,
   Section,
   type TocGroup
 } from '../docs-ui'
@@ -184,12 +185,16 @@ export default function MigrationPage() {
         >
           <CodeBlock title="diff">{shadcnMove}</CodeBlock>
           <p>
-            The Base UI field renders its own label and description, defaults to
-            numeric codes, and names change callbacks after Base UI (
-            <code>onValueChange</code>, <code>onValueComplete</code>). Once no
-            screen imports the root or <code>/mui</code>, remove{' '}
-            <code>@mui/material</code> and Emotion — the Base UI entrypoints
-            never load them.
+            The shadcn field renders its own label and description, defaults to
+            numeric codes, and names its callbacks <code>onValueChange</code>{' '}
+            and <code>onComplete</code>. It is one real input under drawn cells
+            and needs no renderer peer, so once no screen imports the root or{' '}
+            <code>/mui</code>, remove <code>@mui/material</code> and Emotion.
+            Upgrading <code>/shadcn</code> from 8.x? See the{' '}
+            <a href={`${REPOSITORY_URL}/blob/main/docs/releases/9.0.0.md`}>
+              9.0.0 migration notes
+            </a>
+            .
           </p>
         </Section>
       </DocsLayout>

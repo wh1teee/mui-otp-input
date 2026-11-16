@@ -9,7 +9,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 
 assert.equal(manifest.name, '@wh1teee/mui-otp-input')
-assert.match(manifest.version, /^8\.\d+\.\d+(?:-next\.\d+)?$/u)
+assert.match(manifest.version, /^9\.\d+\.\d+(?:-next\.\d+)?$/u)
 assert.deepEqual(manifest.publishConfig, { access: 'public', provenance: true })
 assert.equal(manifest.publishConfig?.provenance, true)
 assert.equal(manifest.sideEffects?.length, 1)
@@ -104,6 +104,21 @@ assert(
 )
 assert(!baseClosure.externals.has('react-hook-form'))
 
+// The single-input shadcn entry owns its runtime: no Base UI, MUI or Emotion.
+for (const entry of ['dist/shadcn.js', 'dist/shadcn/react-hook-form.js']) {
+  const closure = await collectClosure(entry)
+  assert(
+    ![...closure.externals].some((value) =>
+      /^(?:@base-ui\/react|@mui\/|@emotion\/)/u.test(value)
+    ),
+    `${entry} must not import a renderer peer`
+  )
+  assert.equal(
+    closure.externals.has('react-hook-form'),
+    entry.endsWith('react-hook-form.js')
+  )
+}
+
 const headlessClosure = await collectClosure('dist/headless.js')
 assert.equal(headlessClosure.externals.size, 0)
 
@@ -138,7 +153,8 @@ for (const clientEntry of [
   'dist/base-ui.js',
   'dist/shadcn.js',
   'dist/react-hook-form.js',
-  'dist/base-ui/react-hook-form.js'
+  'dist/base-ui/react-hook-form.js',
+  'dist/shadcn/react-hook-form.js'
 ]) {
   assert.match(
     await readFile(join(root, clientEntry), 'utf8'),

@@ -59,4 +59,26 @@ describe('headless OTP normalization', () => {
     // #given / #when / #then
     expect(isOtpComplete('AB12', 4)).toBe(true)
   })
+
+  test('maps full-width digits to ASCII in the numeric mode unless transformChar is given', () => {
+    // #given / #when / #then
+    expect(
+      normalizeOtpValue('１２-３４', { length: 4, validationType: 'numeric' })
+    ).toBe('1234')
+    expect(
+      normalizeOtpValue('１２３４', {
+        length: 4,
+        transformChar: (character) => {
+          return character
+        },
+        validationType: 'numeric'
+      })
+    ).toBe('')
+    expect(
+      normalizeOtpValue('１２３４', {
+        length: 4,
+        validationType: 'alphanumeric'
+      })
+    ).toBe('')
+  })
 })

@@ -1,6 +1,6 @@
 {
   "name": "@wh1teee/mui-otp-input",
-  "description": "Accessible one-time password input for React with independent MUI and Base UI/shadcn adapters.",
+  "description": "Accessible one-time password input for React with independent MUI, Base UI and single-input shadcn adapters.",
   "author": "Victor de la Fouchardiere <victor.delafouchardiere@gmail.com> (https://github.com/viclafouch)",
   "license": "MIT",
   "bugs": {
@@ -8,7 +8,7 @@
   },
   "homepage": "https://mui-otp-input-docs.vercel.app",
   "type": "module",
-  "version": "8.1.0",
+  "version": "9.0.0",
   "files": [
     "dist",
     "README.md",
@@ -57,9 +57,9 @@
       "default": "./dist/base-ui/react-hook-form.js"
     },
     "./shadcn/react-hook-form": {
-      "types": "./dist/base-ui/react-hook-form.d.ts",
-      "import": "./dist/base-ui/react-hook-form.js",
-      "default": "./dist/base-ui/react-hook-form.js"
+      "types": "./dist/shadcn/react-hook-form.d.ts",
+      "import": "./dist/shadcn/react-hook-form.js",
+      "default": "./dist/shadcn/react-hook-form.js"
     },
     "./shadcn.css": "./dist/shadcn.css",
     "./package.json": "./package.json"

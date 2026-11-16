@@ -3,7 +3,7 @@ name: Release OTP package
 on:
   push:
     tags:
-      - v8.*
+      - v9.*
 
 permissions:
   contents: read

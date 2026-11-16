@@ -24,7 +24,8 @@ export default defineConfig([
       'base-ui': 'src/base-ui.tsx',
       shadcn: 'src/shadcn.ts',
       'react-hook-form': 'src/react-hook-form.tsx',
-      'base-ui/react-hook-form': 'src/base-ui-react-hook-form.tsx'
+      'base-ui/react-hook-form': 'src/base-ui-react-hook-form.tsx',
+      'shadcn/react-hook-form': 'src/shadcn-react-hook-form.tsx'
     },
     deps: {
       neverBundle: externalDependencies

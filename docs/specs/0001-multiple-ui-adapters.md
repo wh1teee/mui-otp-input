@@ -10,17 +10,17 @@ The package must expose MUI, headless, Base UI, shadcn, MUI React Hook Form, Bas
 
 ## Shared behavior
 
-Each renderer must support controlled and uncontrolled values, configurable length, character transformation and validation, full-code paste, platform one-time-code replacement, completion callbacks, disabled/read-only states, keyboard movement and deletion, native form association, form reset, and optional auto-submit.
+Each renderer must support controlled and uncontrolled values, WebOTP fill (through `requestWebOtp`/`useWebOtp`), configurable length, character transformation and validation, full-code paste, platform one-time-code replacement, completion callbacks, disabled/read-only states, keyboard movement and deletion, native form association, form reset, and optional auto-submit.
 
 The canonical value is a single string. Rendering slots must not alter server validation authority.
 
 ## Accessibility
 
-The field has a visible or programmatic label. Later slots have localized accessible names. The first slot uses `autocomplete="one-time-code"`; later slots use `off`. Numeric codes use text inputs with `inputmode="numeric"`, not `type="number"`. Focus indicators, error text, narrow viewport geometry, forced colors, and reduced motion must remain usable.
+The field has a visible or programmatic label. Per-cell renderers (MUI, `/base-ui`) give later slots localized accessible names; the first slot uses `autocomplete="one-time-code"` and later slots use `off`. The single-input renderer (`/shadcn`) has exactly one `<input>`, named by the field label, with `autocomplete="one-time-code"`; its drawn cells are hidden from assistive technology, the active cell follows the input selection, and digits run left to right on any page direction. Numeric codes use text inputs with `inputmode="numeric"`, not `type="number"`. Focus indicators, error text, narrow viewport geometry, forced colors, and reduced motion must remain usable.
 
 ## Isolation
 
-MUI consumers can install and run without Base UI. Base UI consumers can install and run without MUI or Emotion. Headless consumers can install and run without React or any renderer. Strict declarations are checked with `skipLibCheck: false` from the exact tarball.
+MUI consumers can install and run without Base UI. Base UI consumers can install and run without MUI or Emotion. `/shadcn` consumers can install and run without Base UI, MUI or Emotion. Headless consumers can install and run without React or any renderer. Strict declarations are checked with `skipLibCheck: false` from the exact tarball.
 
 ## Release proof
 

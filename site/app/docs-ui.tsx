@@ -24,7 +24,7 @@ export function DocsHeader() {
             <i />
           </span>
           <span>OTP Input</span>
-          <span className="docs-badge">v8.x</span>
+          <span className="docs-badge">v9.x</span>
         </a>
         <nav className="docs-nav" aria-label="Documentation">
           <a href="/#quick-start">Docs</a>
