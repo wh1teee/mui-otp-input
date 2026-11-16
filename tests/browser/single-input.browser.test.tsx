@@ -148,7 +148,8 @@ test('renders exactly one labelled input over cells hidden from assistive techno
   const input = codeInput()
   expect(input.type).toBe('text')
   expect(input.inputMode).toBe('numeric')
-  expect(input.autocomplete).toBe('one-time-code')
+  // Firefox reflects an empty string from the IDL property for this token; the attribute is what autofill reads.
+  expect(input.getAttribute('autocomplete')).toBe('one-time-code')
   // The value pipeline enforces the length; a native maxlength would cut a
   // whole code inserted into a partly filled field.
   expect(input.hasAttribute('maxlength')).toBe(false)
