@@ -476,8 +476,8 @@ test('IME composition commits once it ends in both renderers', async () => {
     .toHaveFocus()
 })
 
-test('the documented primitives example has no accessibility violations', async () => {
-  // Mirrors the README and site example: a visible label plus slot names.
+test('Base UI per-cell primitives have no accessibility violations', async () => {
+  // Base UI per-cell primitives: a visible label plus slot names.
   await render(
     <>
       <label htmlFor="code">Verification code</label>

@@ -314,3 +314,9 @@ function OtpFieldSlot({
 }
 
 export type { OtpBehaviorRootProps as InputOTPRootProps }
+
+export {
+  useWebOtp,
+  type UseWebOtpOptions,
+  type UseWebOtpResult
+} from './internal/use-web-otp'

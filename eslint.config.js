@@ -60,6 +60,7 @@ export default [
   {
     files: [
       'src/base-ui.tsx',
+      'src/input-otp.tsx',
       'src/mui.tsx',
       'src/internal/**/*.tsx',
       'src/**/*.test.tsx',
@@ -73,7 +74,7 @@ export default [
     }
   },
   {
-    files: ['src/mui.tsx'],
+    files: ['src/input-otp.tsx', 'src/mui.tsx'],
     rules: {
       'consistent-return': 'off',
       'max-lines-per-function': 'off',
@@ -81,7 +82,7 @@ export default [
     }
   },
   {
-    files: ['src/internal/otp-behavior-root.tsx'],
+    files: ['src/input-otp.tsx', 'src/internal/**/*.{ts,tsx}'],
     rules: {
       'arrow-body-style': 'off',
       'consistent-return': 'off',

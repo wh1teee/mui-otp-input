@@ -170,3 +170,52 @@ export function preprocessOtpPaste(
 export function isOtpComplete(value: string, length = DEFAULT_OTP_LENGTH) {
   return Array.from(value).length === normalizeLength(length)
 }
+
+export type WebOtpTransport = 'sms'
+
+export type RequestWebOtpOptions = {
+  /** Expected code length; a code of any other length is ignored. When
+   * omitted, any all-digit code is accepted. */
+  length?: number
+  signal?: AbortSignal
+  transport?: readonly WebOtpTransport[]
+}
+
+/** Whether this environment implements the WebOTP API. False on the server. */
+export function isWebOtpSupported() {
+  return (
+    'OTPCredential' in globalThis &&
+    typeof globalThis.navigator?.credentials?.get === 'function'
+  )
+}
+
+/**
+ * Asks the browser for a one-time code from an SMS bound to this origin.
+ * Resolves with the code, or `null` when WebOTP is unsupported, the request is
+ * aborted or rejected, or the delivered code is not `length` digits.
+ */
+export async function requestWebOtp({
+  length,
+  signal,
+  transport = ['sms']
+}: RequestWebOtpOptions = {}): Promise<null | string> {
+  if (!isWebOtpSupported() || signal?.aborted) {
+    return null
+  }
+
+  try {
+    const credential = (await globalThis.navigator.credentials.get({
+      otp: { transport: [...transport] },
+      signal
+    } as CredentialRequestOptions)) as { code?: unknown } | null
+    const code = credential?.code
+
+    return typeof code === 'string' &&
+      /^[0-9]+$/u.test(code) &&
+      (length === undefined || code.length === normalizeLength(length))
+      ? code
+      : null
+  } catch {
+    return null
+  }
+}

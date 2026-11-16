@@ -5,6 +5,7 @@ import { OTPField } from '@base-ui/react/otp-field'
 import type { OtpValidationType, PastePreprocess } from '../headless'
 import { normalizeOtpValue, preprocessOtpPaste } from '../headless'
 import { mergeRefs } from './merge-refs'
+import { useDelayedFocus, useFormReset } from './otp-field-effects'
 
 type RootProps = OTPField.Root.Props
 
@@ -250,39 +251,18 @@ export const OtpBehaviorRoot = React.forwardRef<
     [controlled, onValueChange]
   )
 
-  React.useEffect(() => {
-    if (typeof autoFocus !== 'number') {
-      return () => undefined
+  useDelayedFocus(autoFocus, focusFirstInput)
+  useFormReset({
+    enabled: !controlled,
+    formId: form,
+    reset: () => setUncontrolledValue(initialValue),
+    resolveForm: () => {
+      const root = rootElementRef.current
+      return form
+        ? root?.ownerDocument.getElementById(form)
+        : (inputRefs.current[0]?.form ?? root?.closest('form'))
     }
-
-    const timeout = window.setTimeout(focusFirstInput, autoFocus)
-    return () => window.clearTimeout(timeout)
-  }, [autoFocus, focusFirstInput])
-
-  React.useEffect(() => {
-    if (controlled) {
-      return () => undefined
-    }
-
-    const root = rootElementRef.current
-    const associatedForm = form
-      ? root?.ownerDocument.getElementById(form)
-      : (inputRefs.current[0]?.form ?? root?.closest('form'))
-    if (!(associatedForm instanceof HTMLFormElement)) {
-      return () => undefined
-    }
-
-    const handleReset = (event: Event) => {
-      // A later listener may still cancel the reset; decide after dispatch.
-      queueMicrotask(() => {
-        if (!event.defaultPrevented) {
-          setUncontrolledValue(initialValue)
-        }
-      })
-    }
-    associatedForm.addEventListener('reset', handleReset)
-    return () => associatedForm.removeEventListener('reset', handleReset)
-  }, [controlled, form, initialValue])
+  })
 
   React.useEffect(
     () => () => {
