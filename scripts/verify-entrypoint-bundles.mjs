@@ -101,6 +101,12 @@ try {
       .filter((output) => output.type === 'chunk')
       .map((output) => output.code)
       .join('\n')
+      // Rolldown keeps `//#region <path relative to the cwd>` markers. A
+      // tarball extracted to a temp directory has longer paths than the
+      // working tree, so the same files measured differently (1,084 vs 1,116
+      // bytes for /headless in 9.0.0). The markers are bundler bookkeeping a
+      // consumer's minifier drops; measure the code without them.
+      .replaceAll(/^\/\/#(?:end)?region\b.*$\n?/gmu, '')
     const measurement = {
       entry: entryName,
       rawBytes: Buffer.byteLength(code),

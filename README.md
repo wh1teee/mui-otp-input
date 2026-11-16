@@ -275,7 +275,7 @@ Renderer and form peers are optional; a missing peer fails only when its
 entrypoint is imported. Every entrypoint is size-budgeted and checked from the
 exact tarball in isolated MUI 7, MUI 9, Base UI–only, shadcn-only (no Base
 UI) and Next.js 16 consumers. Upgrading from 8.x: see
-[docs/releases/9.0.0.md](./docs/releases/9.0.0.md).
+the [9.x release notes](./docs/releases/9.0.0.md) (first published as 9.0.1).
 
 ## Development
 

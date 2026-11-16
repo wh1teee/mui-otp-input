@@ -33,13 +33,15 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      # The same gate as pull requests, here keeping the tagged candidate that
+      # every artifact verification ran against.
       - run: pnpm ci:pr
+        env:
+          OTP_CANDIDATE_DIR: ${{ runner.temp }}/mui-otp-input-release
+          OTP_REQUIRE_TAG: 'true'
       - id: candidate
         run: |
           candidate_dir="$RUNNER_TEMP/mui-otp-input-release"
-          node scripts/create-release-candidate.mjs \
-            --output-dir="$candidate_dir" \
-            --require-tag
           version="$(node -p "require('./package.json').version")"
           tarball="$candidate_dir/wh1teee-mui-otp-input-$version.tgz"
           test -f "$tarball"
@@ -53,18 +55,6 @@ jobs:
             echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
-      - run: >-
-          node scripts/verify-release-artifact.mjs
-          --artifact="${{ steps.candidate.outputs.tarball }}"
-      - run: >-
-          node scripts/verify-entrypoint-bundles.mjs
-          --artifact="${{ steps.candidate.outputs.tarball }}"
-      - run: >-
-          node scripts/verify-packed-consumers.mjs
-          --artifact="${{ steps.candidate.outputs.tarball }}"
-      - run: >-
-          node scripts/verify-packed-next-consumer.mjs
-          --artifact="${{ steps.candidate.outputs.tarball }}"
       - run: npm install --global npm@11.16.0
       - name: Create draft release
         env:

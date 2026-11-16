@@ -8,7 +8,7 @@
   },
   "homepage": "https://mui-otp-input-docs.vercel.app",
   "type": "module",
-  "version": "9.0.0",
+  "version": "9.0.1",
   "files": [
     "dist",
     "README.md",
@@ -87,7 +87,7 @@
   "scripts": {
     "build": "tsdown && node scripts/build-assets.mjs",
     "build:storybook": "storybook build",
-    "ci:pr": "pnpm format:check && pnpm verify:typescript && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:entrypoint-bundles && pnpm verify:consumers && pnpm verify:next-consumer && pnpm verify:docs",
+    "ci:pr": "pnpm format:check && pnpm verify:typescript && pnpm lint && pnpm test:unit && pnpm test:browser && pnpm build && pnpm verify:package && pnpm verify:candidate && pnpm verify:docs",
     "clean": "node scripts/clean.mjs",
     "coverage": "vitest run --coverage",
     "format": "prettier --write .",
@@ -101,6 +101,7 @@
     "test:browser": "node scripts/run-browser-tests.mjs",
     "test:unit": "vitest run --config vite.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify:candidate": "node scripts/verify-release-candidate.mjs",
     "verify:consumers": "node scripts/verify-packed-consumers.mjs",
     "verify:docs": "pnpm --dir site typecheck && pnpm --dir site build && pnpm --dir site test && pnpm build:storybook",
     "verify:entrypoint-bundles": "node scripts/verify-entrypoint-bundles.mjs",

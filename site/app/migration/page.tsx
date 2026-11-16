@@ -192,7 +192,7 @@ export default function MigrationPage() {
             <code>/mui</code>, remove <code>@mui/material</code> and Emotion.
             Upgrading <code>/shadcn</code> from 8.x? See the{' '}
             <a href={`${REPOSITORY_URL}/blob/main/docs/releases/9.0.0.md`}>
-              9.0.0 migration notes
+              9.x migration notes
             </a>
             .
           </p>
