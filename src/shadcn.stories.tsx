@@ -2,8 +2,8 @@ import React from 'react'
 import type { Meta, StoryFn } from '@storybook/react-vite'
 import {
   InputOTP,
-  type InputOTPHandle,
   InputOTPGroup,
+  type InputOTPHandle,
   InputOTPSeparator,
   InputOTPSlot,
   OtpInput
@@ -69,6 +69,7 @@ export const ClearOnWrongCode: StoryFn<typeof OtpInput> = () => {
         onComplete={(value) => {
           const wrong = value !== '424242'
           setError(wrong)
+
           if (wrong) {
             field.current?.clear({ focus: true })
           }
