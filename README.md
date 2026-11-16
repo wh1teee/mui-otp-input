@@ -95,11 +95,15 @@ cell never grows past its width and shrinks, equally with the others, when the
 line is narrower than the cells need, so six cells fit a 320px phone.
 
 Event handlers passed to `InputOTP` compose with the internal ones. For
-cancellable events (`onPaste`, `onMouseDown`, `onClick`, `onKeyDown`,
-`onBeforeInput`) your handler runs first, and calling `preventDefault()`
-skips the internal handling. For `onCompositionStart`, `onCompositionEnd`,
-`onFocus` and `onBlur` the internal handling runs first, so your handler sees
-the committed value.
+`onPaste`, `onMouseDown`, `onClick` and `onKeyDown` your handler runs first,
+and calling `preventDefault()` skips the internal handling. For
+`onCompositionStart`, `onCompositionEnd`, `onFocus` and `onBlur` the internal
+handling runs first, so your handler sees the committed value. To refuse an
+edit, call `details.cancel()` in `onValueChange`; React's `onBeforeInput` is
+synthetic and does not see deletions.
+
+The single-input root lays its groups and separators out in one row and a
+group shrinks to its cells, so centre the field on the root.
 
 Compose the primitives when your design system owns the field layout. Root
 attributes such as `id`, `name`, `aria-*` and event handlers go to the input:
@@ -170,9 +174,14 @@ export function VerificationCode({
         value={code}
         onValueChange={setCode}
         onComplete={async (value) => {
-          webOtp.abort()
-          // A wrong code: wipe it and put the caret in the first cell.
-          if (!(await verify(value))) field.current?.clear({ focus: true })
+          if (await verify(value)) {
+            // Done: stop listening for the SMS.
+            webOtp.abort()
+          } else {
+            // A wrong code: wipe it and put the caret in the first cell; the
+            // SMS can still fill the field.
+            field.current?.clear({ focus: true })
+          }
         }}
       />
       <button
@@ -191,9 +200,14 @@ export function VerificationCode({
 ```
 
 `onComplete` fires once each time a change makes the value complete: not for
-a value present at mount, not when a form reset (or an RHF `reset`) returns to
-it, and not twice for the same value. `autoSubmit` submits the owning form
-with `requestSubmit()` on the same edge. The `ref` handle offers
+the value present at mount, not when a form reset (or an RHF `reset()`)
+returns to that mount value, and not twice for the same value; any other
+complete value set from outside (WebOTP, an RHF `reset(values)`) counts.
+`autoSubmit` submits the owning form with `requestSubmit()` on the same edge,
+so guard the form against a second submit while one is in flight (Enter right
+after `autoSubmit` submits again). Full-width digits (`１２３`) become ASCII
+digits in the numeric mode, and a pasted message yields the run of exactly
+`length` code characters in it. The `ref` handle offers
 `clear({ focus })`, `focus()`, `root` and `input`. `useWebOtp` returns
 `abort()` and `restart()`; `requestWebOtp` in `/headless` is its React-free
 core. WebOTP codes are accepted as digits only.

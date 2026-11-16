@@ -90,9 +90,13 @@ const webOtp = useWebOtp({ length: 6, onCode: setCode });
   value={code}
   onValueChange={setCode}
   onComplete={async (value) => {
-    webOtp.abort();
-    // A wrong code: wipe it and put the caret in the first cell.
-    if (!(await verify(value))) field.current?.clear({ focus: true });
+    if (await verify(value)) {
+      // Done: stop listening for the SMS.
+      webOtp.abort();
+    } else {
+      // A wrong code: wipe it and put the caret in the first cell.
+      field.current?.clear({ focus: true });
+    }
   }}
 />
 <button
@@ -707,7 +711,7 @@ export default function DocumentationPage() {
               <p>gzip for the Material UI entry, peers external.</p>
             </div>
             <div className="docs-card">
-              <strong>≤ 6.5 KB</strong>
+              <strong>≤ 6.9 KB</strong>
               <p>
                 gzip for <code>/shadcn</code>, with no renderer peer.
               </p>

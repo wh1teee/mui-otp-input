@@ -14,9 +14,20 @@
 /*
  * Sizing variables: --input-otp-slot-width, --input-otp-slot-height and
  * --input-otp-gap. A slot never grows past its width and shrinks, with the
- * others, when the line is narrower than the cells need.
+ * others, when the line is narrower than the cells need. Their defaults are
+ * the 8.x sizes, so the per-cell /base-ui field renders as before.
  */
-[data-slot='input-otp'],
+[data-slot='input-otp'] {
+  min-width: 0;
+}
+
+/* The single-input (/shadcn) root lays groups and separators out in a row. */
+[data-slot='input-otp'][data-single-input] {
+  display: flex;
+  align-items: center;
+  gap: var(--input-otp-gap, 0.5rem);
+}
+
 [data-slot='input-otp-group'] {
   display: flex;
   align-items: center;
@@ -24,13 +35,8 @@
   min-width: 0;
 }
 
-[data-slot='input-otp-group'] {
-  flex: 0 1 auto;
-}
-
 [data-slot='input-otp-slot'] {
   box-sizing: border-box;
-  flex: 0 1 auto;
   width: var(--input-otp-slot-width, 2.5rem);
   min-width: 0;
   height: var(--input-otp-slot-height, 2.5rem);
@@ -59,20 +65,20 @@ div[data-slot='input-otp-slot'] {
 }
 
 [data-slot='input-otp-slot']:focus-visible,
-[data-slot='input-otp-slot'][data-active] {
+div[data-slot='input-otp-slot'][data-active] {
   border-color: var(--ring, #737373);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--ring, #737373) 35%, transparent);
 }
 
 [data-slot='otp-field'][data-invalid] [data-slot='input-otp-slot'],
-[data-slot='input-otp-slot'][data-invalid] {
+div[data-slot='input-otp-slot'][data-invalid] {
   border-color: var(--destructive, #b91c1c);
 }
 
 [data-slot='otp-field'][data-invalid]
   [data-slot='input-otp-slot']:focus-visible,
-[data-slot='input-otp-slot'][data-invalid][data-active] {
+div[data-slot='input-otp-slot'][data-invalid][data-active] {
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--destructive, #b91c1c) 25%, transparent);
 }
@@ -82,16 +88,16 @@ div[data-slot='input-otp-slot'] {
 }
 
 [data-slot='input-otp-slot']:disabled,
-[data-slot='input-otp-slot'][data-disabled] {
+div[data-slot='input-otp-slot'][data-disabled] {
   cursor: not-allowed;
 }
 
 /* A bare disabled field; inside OtpInput the wrapper already dims it. */
-[data-slot='input-otp-slot'][data-disabled] {
+div[data-slot='input-otp-slot'][data-disabled] {
   opacity: 0.5;
 }
 
-[data-slot='otp-field'][data-disabled] [data-slot='input-otp-slot'] {
+[data-slot='otp-field'][data-disabled] div[data-slot='input-otp-slot'] {
   opacity: 1;
 }
 
@@ -146,7 +152,7 @@ div[data-slot='input-otp-slot'] {
 
 @media (forced-colors: active) {
   [data-slot='input-otp-slot']:focus-visible,
-  [data-slot='input-otp-slot'][data-active] {
+  div[data-slot='input-otp-slot'][data-active] {
     outline: 2px solid Highlight;
   }
 

@@ -2,6 +2,7 @@
 
 import React from 'react'
 import {
+  normalizeOtpCharacter,
   normalizeOtpValue,
   type OtpValidationType,
   type PastePreprocess,
@@ -155,8 +156,13 @@ const useIsomorphicLayoutEffect =
   typeof document === 'undefined' ? React.useEffect : React.useLayoutEffect
 
 /** The document or shadow root the input lives in. */
-function rootNodeOf(input: HTMLInputElement) {
-  return input.getRootNode() as Document | ShadowRoot
+function rootNodeOf(input: HTMLInputElement): Document | ShadowRoot {
+  const root = input.getRootNode()
+
+  // A subtree not yet attached to a document has an element as its root.
+  return root.nodeType === Node.DOCUMENT_NODE || 'host' in root
+    ? (root as Document | ShadowRoot)
+    : input.ownerDocument
 }
 
 function isFocused(input: HTMLInputElement | null): input is HTMLInputElement {
@@ -241,6 +247,34 @@ function hasBadgeOver(root: HTMLElement) {
     ) ?? null
 
   return probe !== null && !root.contains(probe)
+}
+
+/**
+ * The first run of exactly `length` code characters between non-code
+ * characters ("Order 42: code 123456" → "123456"), or the whole text.
+ */
+function pickCodeRun(
+  text: string,
+  length: number,
+  options: Parameters<typeof normalizeOtpCharacter>[2]
+) {
+  const runs: string[] = []
+  let run: string[] = []
+
+  for (const character of [...Array.from(text), ' ']) {
+    if (normalizeOtpCharacter(character, run.length, options) === '') {
+      runs.push(run.join(''))
+      run = []
+    } else {
+      run.push(character)
+    }
+  }
+
+  return (
+    runs.find((candidate) => {
+      return Array.from(candidate).length === length
+    }) ?? text
+  )
 }
 
 function createChangeDetails(
@@ -488,11 +522,17 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       const prepared =
         kind === 'paste' ? preprocessOtpPaste(text, pastePreprocess) : text
       const options = { transformChar, validateChar, validationType }
-      // A whole code replaces the field, wherever the caret was; its first
-      // `length` accepted characters win.
+      // A whole code replaces the field, wherever the caret was: in pasted
+      // text, the first run of exactly `length` code characters (the code in
+      // a whole message), otherwise the first `length` accepted characters.
       const whole =
         prepared.replaceAll(/\s/gu, '').length >= length
-          ? normalizeOtpValue(prepared, { ...options, length })
+          ? normalizeOtpValue(
+              kind === 'paste'
+                ? pickCodeRun(prepared, length, options)
+                : prepared,
+              { ...options, length }
+            )
           : ''
       const [from, to, accepted] =
         whole.length === length
@@ -524,7 +564,16 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
         return
       }
 
-      const next = canonical(value.slice(0, from) + accepted + value.slice(to))
+      // A collapsed caret in a field with no room left overwrites the cells
+      // at the caret instead of pushing the code along (8.x maxlength did
+      // the same by dropping the key).
+      const replaced =
+        from === to && value.length + accepted.length > length
+          ? Math.min(value.length, from + accepted.length)
+          : to
+      const next = canonical(
+        value.slice(0, from) + accepted + value.slice(replaced)
+      )
       const caret = Math.min(from + accepted.length, next.length)
       const reason =
         kind === 'paste'
@@ -700,10 +749,14 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       }
 
       input.addEventListener('beforeinput', recordRange)
+      // Engines fire a text field's selectionchange at the field itself; it
+      // does not leave a shadow root, so listen on both.
+      input.addEventListener('selectionchange', syncSelection)
       ownerDocument.addEventListener('selectionchange', syncSelection, true)
 
       return () => {
         input.removeEventListener('beforeinput', recordRange)
+        input.removeEventListener('selectionchange', syncSelection)
         ownerDocument.removeEventListener(
           'selectionchange',
           syncSelection,
@@ -853,6 +906,7 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           ...style
         }}
         data-slot="input-otp"
+        data-single-input=""
         data-complete={value.length === length || undefined}
         data-disabled={disabled || undefined}
         data-focused={focused || undefined}
@@ -923,25 +977,47 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
             }
 
             placeFocusCaret()
+            const placed = [input.selectionStart, input.selectionEnd]
+            onFocus?.(event)
+
+            // A host that moved the selection in its own onFocus keeps it.
+            if (
+              input.selectionStart !== placed[0] ||
+              input.selectionEnd !== placed[1]
+            ) {
+              return
+            }
+
             // WebKit (Safari) selects the whole text after a keyboard focus,
             // past this handler; put the caret back after the last character.
             window.setTimeout(() => {
+              const all = [0, input.value.length]
+
               if (
                 isFocused(input) &&
-                input.value.length > 1 &&
-                input.selectionStart === 0 &&
-                input.selectionEnd === input.value.length
+                input.selectionStart === all[0] &&
+                input.selectionEnd === all[1] &&
+                (placed[0] !== all[0] || placed[1] !== all[1])
               ) {
                 placeFocusCaret()
               }
             }, 0)
-            onFocus?.(event)
           }}
           onKeyDown={(event) => {
             onKeyDown?.(event)
             // WebKit reports Delete over a selection as a backward delete.
             forwardDelete.current =
               !event.defaultPrevented && event.key === 'Delete'
+
+            // The selectionchange after an arrow, Home or End arrives later;
+            // a character typed before it must still replace the cell.
+            if (
+              !event.defaultPrevented &&
+              event.key.length === 1 &&
+              !event.nativeEvent.isComposing
+            ) {
+              syncSelection()
+            }
           }}
           onMouseDown={(event) => {
             onMouseDown?.(event)

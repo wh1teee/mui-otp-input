@@ -62,6 +62,24 @@ function matchesValidationType(
   }
 }
 
+/**
+ * Full-width digits (a Japanese IME, a pasted `１２３`) become ASCII digits
+ * in the numeric mode unless the host supplies its own `transformChar`.
+ */
+function defaultTransform(
+  character: string,
+  validationType: OtpValidationType
+) {
+  const code = character.charCodeAt(0)
+
+  return validationType === 'numeric' &&
+    character.length === 1 &&
+    code >= 0xff_10 &&
+    code <= 0xff_19
+    ? String.fromCharCode(code - 0xfe_e0)
+    : character
+}
+
 function normalizeCharacters(
   value: string,
   options: Omit<NormalizeOtpValueOptions, 'normalizeValue'>
@@ -75,8 +93,9 @@ function normalizeCharacters(
     value.replaceAll(/\s/gu, '')
   ).entries()) {
     const index = indexOffset + sourceIndex
-    const transformed =
-      options.transformChar?.(sourceCharacter, index) ?? sourceCharacter
+    const transformed = options.transformChar
+      ? options.transformChar(sourceCharacter, index)
+      : defaultTransform(sourceCharacter, validationType)
 
     for (const character of Array.from(transformed)) {
       if (!matchesValidationType(character, validationType)) {
@@ -129,8 +148,10 @@ export function normalizeOtpCharacter(
     'transformChar' | 'validateChar' | 'validationType'
   > = {}
 ) {
-  const transformed = options.transformChar?.(character, index) ?? character
   const validationType = options.validationType ?? 'none'
+  const transformed = options.transformChar
+    ? options.transformChar(character, index)
+    : defaultTransform(character, validationType)
 
   for (const candidate of Array.from(transformed)) {
     if (!matchesValidationType(candidate, validationType)) {

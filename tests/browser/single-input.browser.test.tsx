@@ -1,7 +1,7 @@
 import React from 'react'
 import axe from 'axe-core'
 import { expect, test, vi } from 'vitest'
-import { page, userEvent } from 'vitest/browser'
+import { cdp, page, server, userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
 import {
   InputOTP,
@@ -190,8 +190,9 @@ test('typing fills cells, the active cell follows the caret, and the empty activ
 test('arrow keys, Home, End and Backspace move through the cells', async () => {
   await render(<Field value="123456" />)
   await userEvent.tab()
-  // Focusing a full value selects the last cell.
-  expect(activeCells()).toEqual([5])
+  // Focusing a full value selects the last cell (in WebKit right after its
+  // own select-all on keyboard focus).
+  await expect.poll(activeCells).toEqual([5])
 
   await userEvent.keyboard('{ArrowLeft}')
   expect(activeCells()).toEqual([4])
@@ -715,7 +716,7 @@ test('the active cell is tracked inside a shadow root', async () => {
   host.remove()
 })
 
-test('the skin keeps forced colors off the transparent input and dims a bare disabled field', async () => {
+test('the skin dims a bare disabled field once', async () => {
   await render(
     <>
       <InputOTP aria-label="Bare" disabled length={2}>
@@ -727,13 +728,6 @@ test('the skin keeps forced colors off the transparent input and dims a bare dis
       <OtpInput disabled label="Wrapped" length={2} />
     </>
   )
-  const bare = page.getByRole('textbox', { name: 'Bare' }).element()
-
-  // WebKit has no forced colors mode and no such property.
-  if (CSS.supports('forced-color-adjust', 'none')) {
-    expect(getComputedStyle(bare).forcedColorAdjust).toBe('none')
-  }
-
   expect(
     getComputedStyle(page.getByTestId('bare-cell').element()).opacity
   ).toBe('0.5')
@@ -744,6 +738,29 @@ test('the skin keeps forced colors off the transparent input and dims a bare dis
   expect(getComputedStyle(wrapped).opacity).toBe('1')
 })
 
+// Only Chromium can emulate forced colors; WebKit has no such mode.
+test.runIf(server.browser === 'chromium')(
+  'in forced colors the real input text stays transparent over the cells',
+  async () => {
+    const session = cdp() as unknown as {
+      send(method: string, params: object): Promise<unknown>
+    }
+    await session.send('Emulation.setEmulatedMedia', {
+      features: [{ name: 'forced-colors', value: 'active' }]
+    })
+
+    try {
+      await render(<Field value="1234" />)
+      expect(matchMedia('(forced-colors: active)').matches).toBe(true)
+      const style = getComputedStyle(codeInput())
+      expect(style.color).toBe('rgba(0, 0, 0, 0)')
+      expect(style.caretColor).toBe('rgba(0, 0, 0, 0)')
+    } finally {
+      await session.send('Emulation.setEmulatedMedia', { features: [] })
+    }
+  }
+)
+
 test('only a password-manager badge over this field pushes the input', async () => {
   const badge = document.createElement('div')
   badge.setAttribute('data-lastpass-icon-root', '')
@@ -751,25 +768,29 @@ test('only a password-manager badge over this field pushes the input', async () 
   document.body.append(badge)
 
   try {
-    // Leave room on the right, where the gutter would go.
     await render(
       <div style={{ width: 300 }}>
         <OtpInput label="Verification code" length={4} />
       </div>
     )
-    await userEvent.tab()
-    await settle(200)
     const input = codeInput()
     const root = input.parentElement as HTMLElement
+    // There is room for the gutter, so only detection decides.
+    expect(
+      document.documentElement.clientWidth - root.getBoundingClientRect().right
+    ).toBeGreaterThanOrEqual(40)
+
+    // A known badge elsewhere on the page does not push this field.
+    input.focus()
+    await settle(200)
     expect(input.getBoundingClientRect().width).toBe(
       root.getBoundingClientRect().width
     )
 
-    // A badge drawn over the field's right edge does push it.
+    // A known badge over the field does, even one that ignores the pointer
+    // (so only the rectangle check, not elementFromPoint, can see it).
     const rect = root.getBoundingClientRect()
-    badge.style.left = `${rect.right - 26}px`
-    badge.style.top = `${rect.top}px`
-    badge.style.bottom = ''
+    badge.style.cssText = `position:fixed;left:${rect.right - 26}px;top:${rect.top}px;width:20px;height:20px;pointer-events:none`
     input.blur()
     await settle(50)
     input.focus()
@@ -817,24 +838,34 @@ test('a host can cancel paste, mouse and key handling with preventDefault', asyn
 })
 
 test('host handlers run first and see the field before the internal handling', async () => {
-  const seen: string[] = []
+  const seen: unknown[] = []
   await render(
     <Field
-      onMouseDown={() => {
-        seen.push(`mousedown:${String(activeCells())}`)
+      onMouseDown={(event) => {
+        seen.push([
+          'mousedown',
+          event.defaultPrevented,
+          codeInput().selectionStart
+        ])
       }}
-      onPaste={() => {
-        seen.push(`paste:${codeInput().value}`)
+      onPaste={(event) => {
+        seen.push(['paste', event.defaultPrevented])
       }}
       value="12"
     />
   )
   await userEvent.tab()
+  await expect.poll(activeCells).toEqual([2])
   dispatchPaste(codeInput(), '345678')
   await expect.element(page.getByTestId('value')).toHaveTextContent('345678')
   await clickCell(1)
   expect(activeCells()).toEqual([1])
-  expect(seen).toEqual(['paste:12', 'mousedown:5'])
+  // Internal-first would already have prevented the default and moved the
+  // caret to the clicked cell when the host handler ran.
+  expect(seen).toEqual([
+    ['paste', false],
+    ['mousedown', false, 5]
+  ])
 })
 
 test('six cells shrink equally to fit a 288px line and keep their set width on a wide one', async () => {
@@ -901,4 +932,164 @@ test('six cells shrink equally to fit a 288px line and keep their set width on a
       expect(widths[0]).toBe(expected)
     }
   }
+})
+
+test('mounting into a container not yet in the document does not throw', async () => {
+  const { createRoot } = await import('react-dom/client')
+  const errors: unknown[] = []
+
+  const onError = (event: ErrorEvent) => {
+    errors.push(event.error)
+  }
+
+  window.addEventListener('error', onError)
+  const container = document.createElement('div')
+  const root = createRoot(container)
+
+  try {
+    root.render(<OtpInput label="Detached code" length={4} />)
+    await settle()
+    document.body.append(container)
+    await settle()
+    expect(errors).toEqual([])
+    expect(container.querySelectorAll('input')).toHaveLength(1)
+  } finally {
+    root.unmount()
+    container.remove()
+    window.removeEventListener('error', onError)
+  }
+})
+
+/** A native edit as a browser performs it: beforeinput, then the text. */
+function nativeInsert(input: HTMLInputElement, data: string) {
+  const start = input.selectionStart ?? 0
+  const end = input.selectionEnd ?? start
+  input.dispatchEvent(
+    new InputEvent('beforeinput', {
+      bubbles: true,
+      cancelable: true,
+      data,
+      inputType: 'insertText'
+    })
+  )
+  setNativeValue(
+    input,
+    input.value.slice(0, start) + data + input.value.slice(end)
+  )
+  input.setSelectionRange(start + data.length, start + data.length)
+  input.dispatchEvent(
+    new InputEvent('input', { bubbles: true, data, inputType: 'insertText' })
+  )
+}
+
+test('a full field overwrites the cell at a collapsed caret and ignores a key past the end', async () => {
+  const onComplete = vi.fn()
+  const onValue = vi.fn()
+  await render(
+    <Field onComplete={onComplete} onValue={onValue} value="123456" />
+  )
+  await userEvent.tab()
+  const input = codeInput()
+
+  // Home, then a digit before the selection is normalised.
+  input.setSelectionRange(0, 0)
+  nativeInsert(input, '9')
+  await expect.element(page.getByTestId('value')).toHaveTextContent('923456')
+
+  input.setSelectionRange(6, 6)
+  nativeInsert(input, '7')
+  await settle()
+  expect(onValue.mock.calls).toEqual([['923456']])
+  expect(input.value).toBe('923456')
+  expect(onComplete.mock.calls).toEqual([['923456']])
+})
+
+test('a digit typed right after an arrow key replaces the cell, before selectionchange arrives', async () => {
+  // Hold back selectionchange, as a fast typist outruns it.
+  const block = (event: Event) => {
+    event.stopImmediatePropagation()
+  }
+
+  await render(<Field value="1234" />)
+  await userEvent.tab()
+  await expect.poll(activeCells).toEqual([4])
+  window.addEventListener('selectionchange', block, true)
+  codeInput().addEventListener('selectionchange', block, true)
+
+  try {
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}9')
+    await expect.element(page.getByTestId('value')).toHaveTextContent('1294')
+  } finally {
+    window.removeEventListener('selectionchange', block, true)
+    codeInput().removeEventListener('selectionchange', block, true)
+  }
+})
+
+test('full-width digits from a Japanese IME or a paste become ASCII digits', async () => {
+  await render(<Field />)
+  await userEvent.tab()
+  dispatchPaste(codeInput(), '１２３４５６')
+  await expect.element(page.getByTestId('value')).toHaveTextContent('123456')
+})
+
+test('a pasted message takes the run of exactly length code characters', async () => {
+  await render(<Field />)
+  await userEvent.tab()
+  dispatchPaste(codeInput(), 'Order 42: your code 123456')
+  await expect.element(page.getByTestId('value')).toHaveTextContent('123456')
+
+  // Without such a run, the first length accepted characters.
+  dispatchPaste(codeInput(), '12a34b56c78')
+  await settle()
+  await expect.element(page.getByTestId('value')).toHaveTextContent('123456')
+  dispatchPaste(codeInput(), '98-76-54-32')
+  await expect.element(page.getByTestId('value')).toHaveTextContent('987654')
+})
+
+test('focus on a one-character value puts the next digit in cell 1', async () => {
+  await render(<Field value="1" />)
+  await userEvent.tab()
+  await settle(50)
+  await userEvent.keyboard('2')
+  await expect.element(page.getByTestId('value')).toHaveTextContent('12')
+})
+
+test('a selection the host makes in its own onFocus is kept', async () => {
+  await render(
+    <Field
+      onFocus={(event) => {
+        event.currentTarget.select()
+      }}
+      value="123456"
+    />
+  )
+  await userEvent.tab()
+  await settle(100)
+  expect(activeCells()).toEqual([0, 1, 2, 3, 4, 5])
+})
+
+test('arrow keys move the active cell inside a shadow root', async () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  const shadow = host.attachShadow({ mode: 'open' })
+  const container = document.createElement('div')
+  shadow.append(container)
+  await render(
+    <OtpInput defaultValue="1234" label="Verification code" length={6} />,
+    { container }
+  )
+
+  const active = () => {
+    return [...shadow.querySelectorAll('[data-slot="input-otp-slot"]')].flatMap(
+      (cell, index) => {
+        return cell.hasAttribute('data-active') ? [index] : []
+      }
+    )
+  }
+
+  ;(shadow.querySelector('input') as HTMLInputElement).focus()
+  await expect.poll(active).toEqual([4])
+  await userEvent.keyboard('{ArrowLeft}{ArrowLeft}')
+  await expect.poll(active).toEqual([2])
+  host.remove()
 })

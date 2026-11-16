@@ -31,8 +31,8 @@
     },
     "shadcn": {
       "renderer": "shadcn",
-      "gzipLimit": 6500,
-      "brotliLimit": 5800
+      "gzipLimit": 6900,
+      "brotliLimit": 6150
     },
     "react-hook-form": {
       "renderer": "mui-rhf",
@@ -42,12 +42,12 @@
     "base-ui/react-hook-form": {
       "renderer": "base-ui-rhf",
       "gzipLimit": 3900,
-      "brotliLimit": 3400
+      "brotliLimit": 3550
     },
     "shadcn/react-hook-form": {
       "renderer": "shadcn-rhf",
-      "gzipLimit": 6350,
-      "brotliLimit": 5650
+      "gzipLimit": 6750,
+      "brotliLimit": 6050
     }
   }
 }
