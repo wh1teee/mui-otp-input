@@ -26,7 +26,7 @@ export function LandingDemo() {
         {(
           [
             ['mui', 'Material UI'],
-            ['shadcn', 'shadcn / Base UI']
+            ['shadcn', 'shadcn']
           ] as const
         ).map(([key, label]) => (
           <button

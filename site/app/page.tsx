@@ -13,7 +13,7 @@ import { PropsTable, type PropRow } from './props-table'
 
 const installMui = `pnpm add @wh1teee/mui-otp-input @mui/material @emotion/react @emotion/styled`
 
-const installBaseUi = `pnpm add @wh1teee/mui-otp-input @base-ui/react`
+const installShadcn = `pnpm add @wh1teee/mui-otp-input`
 
 const muiExample = `'use client';
 
@@ -67,17 +67,34 @@ const primitivesExample = `import {
 <label htmlFor="code">Verification code</label>
 <InputOTP id="code" length={6} value={code} onValueChange={setCode}>
   <InputOTPGroup>
-    <InputOTPSlot index={0} aria-label="Digit 1 of 6" />
-    <InputOTPSlot index={1} aria-label="Digit 2 of 6" />
-    <InputOTPSlot index={2} aria-label="Digit 3 of 6" />
+    <InputOTPSlot index={0} />
+    <InputOTPSlot index={1} />
+    <InputOTPSlot index={2} />
   </InputOTPGroup>
   <InputOTPSeparator />
   <InputOTPGroup>
-    <InputOTPSlot index={3} aria-label="Digit 4 of 6" />
-    <InputOTPSlot index={4} aria-label="Digit 5 of 6" />
-    <InputOTPSlot index={5} aria-label="Digit 6 of 6" />
+    <InputOTPSlot index={3} />
+    <InputOTPSlot index={4} />
+    <InputOTPSlot index={5} />
   </InputOTPGroup>
 </InputOTP>`
+
+const webOtpExample = `const field = useRef<InputOTPHandle>(null);
+// Fills the code from the SMS where the browser supports WebOTP.
+const webOtp = useWebOtp({ length: 6, onCode: setCode });
+
+<OtpInput
+  ref={field}
+  label="Verification code"
+  length={6}
+  value={code}
+  onValueChange={setCode}
+  onComplete={async (value) => {
+    webOtp.abort();
+    // A wrong code: wipe it and put the caret in the first cell.
+    if (!(await verify(value))) field.current?.clear({ focus: true });
+  }}
+/>`
 
 const characterRulesExample = `// Letters and digits, shown upper-case.
 <MuiOtpInput
@@ -200,7 +217,7 @@ const toc: readonly TocGroup[] = [
     title: 'Get started',
     links: [
       ['Quick start', '#quick-start'],
-      ['Base UI & shadcn', '#base-ui-shadcn']
+      ['shadcn & Base UI', '#base-ui-shadcn']
     ]
   },
   {
@@ -299,12 +316,7 @@ const muiProps: readonly PropRow[] = [
 ]
 
 const baseUiProps: readonly PropRow[] = [
-  [
-    'label',
-    'ReactNode',
-    'required',
-    'Visible label, linked to the first slot.'
-  ],
+  ['label', 'ReactNode', 'required', 'Visible label, linked to the input.'],
   ['length', 'number', 'required', 'Number of slots.'],
   [
     'helperText',
@@ -316,11 +328,24 @@ const baseUiProps: readonly PropRow[] = [
     'error',
     'boolean',
     'false',
-    'Invalid styling and aria-invalid on every slot.'
+    'aria-invalid on the input, invalid styling on every cell.'
   ],
   ['value, defaultValue', 'string', '—', 'Controlled or initial value.'],
   ['onValueChange', '(value, details) => void', '—', 'Every accepted change.'],
-  ['onValueComplete', '(value, details) => void', '—', 'All slots are filled.'],
+  [
+    'onComplete',
+    '(value) => void',
+    '—',
+    'Once per completed value; not on mount.'
+  ],
+  [
+    'autoSubmit',
+    'boolean',
+    'false',
+    'requestSubmit() on the owning form on completion.'
+  ],
+  ['mask', 'boolean', 'false', 'Draws a dot in filled cells.'],
+  ['ref', 'InputOTPHandle', '—', 'clear({ focus }), focus(), root and input.'],
   [
     'validationType',
     "'none' | 'numeric' | 'alphanumeric'",
@@ -343,34 +368,24 @@ const baseUiProps: readonly PropRow[] = [
     'slotProps',
     'props | (index) => props',
     '—',
-    'Native and Base UI props per slot.'
-  ],
-  [
-    'slotAriaLabel',
-    '(index, length) => string',
-    '—',
-    'Custom accessible name per slot.'
+    'Props of each drawn cell (a div).'
   ]
 ]
 
 const entrypoints = [
   ['@wh1teee/mui-otp-input', 'MuiOtpInput', 'MUI + Emotion'],
   ['…/mui', 'MuiOtpInput, explicit import', 'MUI + Emotion'],
-  ['…/base-ui', 'OtpInput and InputOTP primitives', 'Base UI'],
-  ['…/shadcn', 'The same, under shadcn naming', 'Base UI'],
+  ['…/shadcn', 'Single-input OtpInput and InputOTP parts', 'none'],
+  ['…/base-ui', 'The same names, one input per cell', 'Base UI'],
   ['…/shadcn.css', 'Optional skin over data-slot', 'none'],
-  ['…/headless', 'Normalization helpers', 'none'],
+  ['…/headless', 'Normalization and WebOTP helpers', 'none'],
   ['…/mui/react-hook-form', 'MuiOtpInputController', 'MUI + React Hook Form'],
   [
     '…/base-ui/react-hook-form',
     'OtpInputController',
     'Base UI + React Hook Form'
   ],
-  [
-    '…/shadcn/react-hook-form',
-    'OtpInputController',
-    'Base UI + React Hook Form'
-  ]
+  ['…/shadcn/react-hook-form', 'OtpInputController', 'React Hook Form']
 ] as const
 
 export default function DocumentationPage() {
@@ -381,9 +396,9 @@ export default function DocumentationPage() {
           <h1>One-time codes, typed, pasted, or autofilled</h1>
           <p>
             An accessible OTP input for React. Every way a code can arrive lands
-            in one clean string. Use the Material UI component, the
-            shadcn-styled Base UI field, or the primitives inside your own
-            design system.
+            in one clean string. Use the Material UI component, the shadcn field
+            (one real input under drawn cells), or the primitives inside your
+            own design system.
           </p>
           <div className="docs-hero-actions">
             <a className="docs-button docs-button-primary" href="#quick-start">
@@ -422,24 +437,36 @@ export default function DocumentationPage() {
 
         <Section
           id="base-ui-shadcn"
-          title="Base UI and shadcn"
-          lead="A complete field built on Base UI's OTP Field. Neither path loads Material UI or Emotion."
+          title="shadcn and Base UI"
+          lead="One real input under drawn cells, like shadcn/ui's InputOTP. No renderer peer, no Material UI or Emotion."
         >
-          <CodeBlock title="Terminal">{installBaseUi}</CodeBlock>
+          <CodeBlock title="Terminal">{installShadcn}</CodeBlock>
           <CodeBlock title="VerificationCode.tsx">{shadcnExample}</CodeBlock>
           <p>
-            <code>OtpInput</code> wires the label, description, error state, and
-            an accessible name for every slot. <code>/shadcn</code> is the same
-            component under shadcn naming; import <code>/shadcn.css</code> for a
-            skin built on the standard shadcn variables, or style the{' '}
-            <code>data-slot</code> attributes yourself.
+            SMS autofill, keyboard suggestions, password managers, WebOTP,
+            screen readers and paste all see a single{' '}
+            <code>autocomplete="one-time-code"</code> field named by the label;
+            the cells follow its value and selection and are hidden from
+            assistive technology. Import <code>/shadcn.css</code> for a skin
+            built on the standard shadcn variables, or style the{' '}
+            <code>data-slot</code> and <code>data-active</code>,{' '}
+            <code>data-filled</code>, <code>data-fake-caret</code> attributes
+            yourself.
           </p>
           <h3>Compose the primitives</h3>
           <p>
             When your design system already owns the field layout, build it from
-            the parts shadcn users know.
+            the parts shadcn users know. Root attributes such as <code>id</code>
+            , <code>name</code> and <code>aria-*</code> go to the input.
           </p>
           <CodeBlock title="CodeField.tsx">{primitivesExample}</CodeBlock>
+          <h3>Completion, clearing and WebOTP</h3>
+          <CodeBlock title="VerificationCode.tsx">{webOtpExample}</CodeBlock>
+          <p>
+            <code>/base-ui</code> exports the same names with one input per
+            cell, built on Base UI's OTP Field, for apps that already depend on
+            it.
+          </p>
         </Section>
 
         <Section
@@ -574,15 +601,18 @@ export default function DocumentationPage() {
         <Section
           id="api-base-ui"
           title="OtpInput"
-          lead="From /base-ui or /shadcn. Also accepts Base UI OTP Field root props such as name, disabled, and autoComplete."
+          lead="From /shadcn. Also accepts input attributes such as name, disabled, autoComplete and enterKeyHint, which go to the one input."
         >
           <PropsTable label="OtpInput props" rows={baseUiProps} />
           <p>
-            <code>InputOTP</code> adds the same behavior props (
+            <code>InputOTP</code> takes the same behavior props (
             <code>transformChar</code>, <code>validateChar</code>,{' '}
-            <code>pastePreprocess</code>, <code>autoFocus</code>) to Base UI's{' '}
-            <code>OTPField.Root</code>; <code>InputOTPSlot</code> requires an{' '}
-            <code>index</code>.
+            <code>pastePreprocess</code>, <code>autoFocus</code>);{' '}
+            <code>InputOTPSlot</code> draws the cell at its <code>index</code>,
+            and <code>useInputOTPSlot(index)</code> returns its state for custom
+            cells. The per-cell <code>/base-ui</code> field keeps Base UI's OTP
+            Field props, <code>onValueComplete</code> and per-slot{' '}
+            <code>slotAriaLabel</code>.
           </p>
         </Section>
 
@@ -640,12 +670,13 @@ export default function DocumentationPage() {
           lead="Targets WCAG 2.2 AA, checked with axe and keyboard tests in Chromium, Firefox, and WebKit."
         >
           <p>
-            Every slot announces its position (“Verification code 3/6”), and in
-            the Base UI field errors reach every slot through{' '}
-            <code>aria-describedby</code> and <code>aria-invalid</code>. Slots
-            grow to touch-target size on coarse pointers, and the skin honors
-            forced colors and reduced motion. When you compose primitives, give
-            the first slot a visible label and every slot an{' '}
+            The shadcn field is one input: its label, description and{' '}
+            <code>aria-invalid</code> are announced once, and the drawn cells
+            stay out of the accessibility tree. In the per-cell fields every
+            slot announces its position (“Verification code 3/6”). Cells grow to
+            touch-target size on coarse pointers, and the skin honors forced
+            colors and reduced motion (the drawn caret stops blinking). When you
+            compose primitives, label the root with a visible label or{' '}
             <code>aria-label</code>.
           </p>
         </Section>
@@ -661,13 +692,13 @@ export default function DocumentationPage() {
               <p>gzip for the Material UI entry, peers external.</p>
             </div>
             <div className="docs-card">
-              <strong>≤ 3.65 KB</strong>
+              <strong>≤ 6.15 KB</strong>
               <p>
-                gzip for <code>/base-ui</code> and <code>/shadcn</code>.
+                gzip for <code>/shadcn</code>, with no renderer peer.
               </p>
             </div>
             <div className="docs-card">
-              <strong>≤ 1 KB</strong>
+              <strong>≤ 1.1 KB</strong>
               <p>
                 gzip for <code>/headless</code>, with no runtime peer.
               </p>
@@ -675,8 +706,8 @@ export default function DocumentationPage() {
           </div>
           <p>
             CI installs the packed tarball into isolated MUI 7 + React 18, MUI 9
-            + React 19, Base UI–only, and Next.js 16 consumers, and fails if a
-            Material UI import leaks into a Base UI bundle or the reverse.
+            + React 19, Base UI–only, shadcn-only and Next.js 16 consumers, and
+            fails if a renderer import leaks into another renderer's bundle.
             Releases are published from GitHub Actions with npm provenance. This
             project continues{' '}
             <a href="https://github.com/viclafouch/mui-otp-input">

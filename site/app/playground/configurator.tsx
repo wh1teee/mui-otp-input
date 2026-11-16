@@ -89,7 +89,7 @@ export function generateCode(config: Config): string {
     if (config.mask) props.push('mask')
   } else {
     if (config.split) props.push(`separatorAfter={[${middle}]}`)
-    if (config.mask) props.push("slotProps={{ type: 'password' }}")
+    if (config.mask) props.push('mask')
     if (config.error) props.push('error')
   }
   if (config.disabled) props.push('disabled')
@@ -195,11 +195,11 @@ export function Configurator() {
       label="Verification code"
       length={config.length}
       onValueChange={setCode}
-      onValueComplete={handleComplete}
+      onComplete={handleComplete}
       onValueInvalid={(attempt) => setLastRejected(attempt)}
       pastePreprocess={config.pastePreprocess}
       separatorAfter={config.split ? [middle] : []}
-      slotProps={config.mask ? { type: 'password' } : undefined}
+      mask={config.mask}
       transformChar={transformChar}
       validationType={config.validationType}
       value={code}
@@ -232,7 +232,7 @@ export function Configurator() {
               value={config.renderer}
             >
               <ToggleButton value="mui">Material UI</ToggleButton>
-              <ToggleButton value="shadcn">shadcn / Base UI</ToggleButton>
+              <ToggleButton value="shadcn">shadcn</ToggleButton>
             </ToggleButtonGroup>
           </Group>
 
@@ -317,7 +317,7 @@ export function Configurator() {
                 Live result
               </Typography>
               <span className="configurator-preset-label">
-                {isMui ? 'Material UI' : 'shadcn / Base UI'}
+                {isMui ? 'Material UI' : 'shadcn'}
               </span>
             </div>
             <div className="configurator-otp-stage" data-testid="config-stage">

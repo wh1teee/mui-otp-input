@@ -70,7 +70,7 @@ test('landing demo keeps one value across typing, renderers, and paste', async (
   ).toBeFocused()
 
   // The shadcn field receives the same value.
-  await page.getByRole('button', { name: 'shadcn / Base UI' }).click()
+  await page.getByRole('button', { name: 'shadcn', exact: true }).click()
   await expect(page.getByTestId('landing-shadcn-otp')).toBeVisible()
   await expect(page.getByTestId('landing-otp-value')).toHaveText('123')
 
@@ -129,7 +129,7 @@ test('playground configurator generates code that matches the preview', async ({
   await expect(code).toContainText('validationType="numeric"')
   expectValidGeneratedTsx((await code.locator('pre').textContent()) ?? '')
 
-  await page.getByRole('button', { name: 'shadcn / Base UI' }).click()
+  await page.getByRole('button', { name: 'shadcn', exact: true }).click()
   await expect(page.getByTestId('config-shadcn-otp')).toBeVisible()
   await expect(code).toContainText('<OtpInput')
   await expect(code).toContainText('separatorAfter={[2]}')
@@ -143,7 +143,7 @@ test('playground configurator generates code that matches the preview', async ({
   await expect(code).toContainText('transformChar=')
   expectValidGeneratedTsx((await code.locator('pre').textContent()) ?? '')
 
-  // Base UI names the first slot by the visible label.
+  // The single input is named by the visible label.
   await page
     .getByTestId('config-stage')
     .getByRole('textbox', { name: 'Verification code', exact: true })

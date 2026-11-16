@@ -7,8 +7,9 @@
 [![docs](https://img.shields.io/badge/docs-mui--otp--input--docs.vercel.app-111)](https://mui-otp-input-docs.vercel.app)
 
 An accessible one-time code input for React. Typing, paste, and SMS autofill
-all land in one clean string. Use the Material UI component, the
-shadcn-styled Base UI field, or the primitives inside your own design system.
+all land in one clean string. Use the Material UI component, the shadcn
+field (one real input under drawn cells), the per-cell Base UI field, or the
+primitives inside your own design system.
 
 **[Documentation](https://mui-otp-input-docs.vercel.app)** ·
 **[Playground](https://mui-otp-input-docs.vercel.app/playground)** ·
@@ -46,10 +47,10 @@ Material UI 7 and 9, React 18 and 19. The component keeps the API of the
 original `mui-one-time-password-input`; the root also accepts Material UI `Box`
 props.
 
-## Base UI and shadcn
+## shadcn
 
 ```bash
-pnpm add @wh1teee/mui-otp-input @base-ui/react
+pnpm add @wh1teee/mui-otp-input
 ```
 
 ```tsx
@@ -75,17 +76,27 @@ export function VerificationCode() {
 }
 ```
 
-`/shadcn` is the same component as `/base-ui` under shadcn naming. The optional
-stylesheet targets only `data-slot` attributes and reads the standard shadcn
-tokens (`--background`, `--input`, `--ring`, `--destructive`, `--radius`, …).
-Neither entrypoint loads Material UI or Emotion.
+`/shadcn` renders **one real `<input>`** (`autocomplete="one-time-code"`,
+`inputmode` from `validationType`) lying transparent over drawn cells, like
+shadcn/ui's InputOTP. SMS autofill, keyboard suggestions, password managers,
+WebOTP, screen readers and paste all see a single field; the label names it
+and the cells are hidden from assistive technology. The active cell follows
+the input's selection, and a click on a cell puts the caret there. It needs no
+renderer peer.
 
-Compose the primitives when your design system owns the field layout:
+The optional stylesheet targets only `data-slot` attributes and reads the
+standard shadcn tokens (`--background`, `--input`, `--ring`, `--destructive`,
+`--radius`, …). Cells expose `data-active`, `data-filled`, `data-fake-caret`,
+`data-invalid` and `data-disabled` for your own styles.
+
+Compose the primitives when your design system owns the field layout. Root
+attributes such as `id`, `name`, `aria-*` and event handlers go to the input:
 
 ```tsx
 import {
   InputOTP,
   InputOTPGroup,
+  InputOTPSeparator,
   InputOTPSlot
 } from '@wh1teee/mui-otp-input/shadcn'
 
@@ -93,21 +104,81 @@ export function CodeField() {
   return (
     <>
       <label htmlFor="code">Verification code</label>
-      <InputOTP id="code" length={4}>
+      <InputOTP id="code" length={6}>
         <InputOTPGroup>
-          {[0, 1, 2, 3].map((index) => (
-            <InputOTPSlot
-              key={index}
-              index={index}
-              aria-label={`Digit ${index + 1} of 4`}
-            />
-          ))}
+          <InputOTPSlot index={0} />
+          <InputOTPSlot index={1} />
+          <InputOTPSlot index={2} />
+        </InputOTPGroup>
+        <InputOTPSeparator />
+        <InputOTPGroup>
+          <InputOTPSlot index={3} />
+          <InputOTPSlot index={4} />
+          <InputOTPSlot index={5} />
         </InputOTPGroup>
       </InputOTP>
     </>
   )
 }
 ```
+
+For custom cells, `useInputOTPSlot(index)` returns
+`{ char, isActive, hasFakeCaret, isFilled, isInvalid }`.
+
+### Completion, clearing and WebOTP
+
+```tsx
+'use client'
+
+import {
+  type InputOTPHandle,
+  OtpInput,
+  useWebOtp
+} from '@wh1teee/mui-otp-input/shadcn'
+import { useRef, useState } from 'react'
+
+export function VerificationCode({
+  verify
+}: {
+  verify: (code: string) => Promise<boolean>
+}) {
+  const [code, setCode] = useState('')
+  const field = useRef<InputOTPHandle>(null)
+  // Fills the code from the SMS where the browser supports WebOTP.
+  const webOtp = useWebOtp({ length: 6, onCode: setCode })
+
+  return (
+    <OtpInput
+      ref={field}
+      label="Verification code"
+      length={6}
+      value={code}
+      onValueChange={setCode}
+      onComplete={async (value) => {
+        webOtp.abort()
+        // A wrong code: wipe it and put the caret in the first cell.
+        if (!(await verify(value))) field.current?.clear({ focus: true })
+      }}
+    />
+  )
+}
+```
+
+`onComplete` fires once each time the value becomes complete (not on mount,
+not twice for the same value); `autoSubmit` submits the owning form with
+`requestSubmit()` on the same edge. The `ref` handle offers
+`clear({ focus })`, `focus()`, `root` and `input`. `requestWebOtp` in
+`/headless` is the React-free core of `useWebOtp`.
+
+## Base UI
+
+```bash
+pnpm add @wh1teee/mui-otp-input @base-ui/react
+```
+
+`/base-ui` exports the same `OtpInput`, `InputOTP*` and `useWebOtp` names with
+one `<input>` per cell, built on Base UI's OTP Field. Slots there accept input
+props such as `aria-label`.
 
 ## React Hook Form
 
@@ -135,24 +206,30 @@ export function VerifyForm() {
 }
 ```
 
-For Material UI, use `MuiOtpInputController` from `/mui/react-hook-form`. Both
-controllers register the first slot as the field ref, so focus on error,
-`reset`, and server errors behave like any other input.
+Use `/base-ui/react-hook-form` with the per-cell field and
+`MuiOtpInputController` from `/mui/react-hook-form` with Material UI. Every
+controller registers the input (the first slot for per-cell fields) as the
+field ref, so focus on error, `reset`, and server errors behave like any other
+input.
 
 ## Entrypoints
 
-| Import                                                | Provides                     | Peers                     |
-| ----------------------------------------------------- | ---------------------------- | ------------------------- |
-| `@wh1teee/mui-otp-input`, `/mui`                      | `MuiOtpInput`                | MUI + Emotion             |
-| `/base-ui`, `/shadcn`                                 | `OtpInput`, `InputOTP` parts | Base UI                   |
-| `/shadcn.css`                                         | Optional skin                | none                      |
-| `/headless`                                           | Normalization helpers        | none                      |
-| `/mui/react-hook-form`                                | `MuiOtpInputController`      | MUI + React Hook Form     |
-| `/base-ui/react-hook-form`, `/shadcn/react-hook-form` | `OtpInputController`         | Base UI + React Hook Form |
+| Import                           | Provides                     | Peers                     |
+| -------------------------------- | ---------------------------- | ------------------------- |
+| `@wh1teee/mui-otp-input`, `/mui` | `MuiOtpInput`                | MUI + Emotion             |
+| `/shadcn`                        | Single-input field and parts | none                      |
+| `/base-ui`                       | Per-cell field and parts     | Base UI                   |
+| `/shadcn.css`                    | Optional skin                | none                      |
+| `/headless`                      | Normalization, WebOTP        | none                      |
+| `/mui/react-hook-form`           | `MuiOtpInputController`      | MUI + React Hook Form     |
+| `/shadcn/react-hook-form`        | `OtpInputController`         | React Hook Form           |
+| `/base-ui/react-hook-form`       | `OtpInputController`         | Base UI + React Hook Form |
 
 Renderer and form peers are optional; a missing peer fails only when its
 entrypoint is imported. Every entrypoint is size-budgeted and checked from the
-exact tarball in isolated MUI 7, MUI 9, Base UI–only, and Next.js 16 consumers.
+exact tarball in isolated MUI 7, MUI 9, Base UI–only, shadcn-only (no Base
+UI) and Next.js 16 consumers. Upgrading from 8.x: see
+[docs/releases/9.0.0.md](./docs/releases/9.0.0.md).
 
 ## Development
 
