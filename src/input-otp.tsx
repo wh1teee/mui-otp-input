@@ -317,6 +317,7 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       onCompositionEnd,
       onCompositionStart,
       onFocus,
+      onKeyDown,
       onMouseDown,
       onPaste,
       onPointerDown,
@@ -345,6 +346,7 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
     const composing = React.useRef(false)
     // `inputType` of the edit in progress, from `beforeinput`.
     const inputType = React.useRef('')
+    const forwardDelete = React.useRef(false)
     // The last value this component committed, to tell user edits from
     // outside changes (a form reset, a host `value`).
     const committed = React.useRef<null | string>(null)
@@ -666,11 +668,15 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       pendingCaret.current = null
 
       // A forward delete keeps the caret on the deleted character's cell.
-      if (inputType.current === 'deleteContentForward') {
+      if (
+        inputType.current === 'deleteContentForward' ||
+        forwardDelete.current
+      ) {
         previousSelection.current = null
       }
 
       inputType.current = ''
+      forwardDelete.current = false
       input.setSelectionRange(caret, caret)
       syncSelection()
     }, [value, syncSelection])
@@ -879,12 +885,16 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           }}
           onChange={handleChange}
           onClick={(event) => {
+            onClick?.(event)
+
             // Touch and pen taps focus natively; then the tapped cell wins.
-            if (pointerType.current !== 'mouse' && event.detail < 2) {
+            if (
+              !event.defaultPrevented &&
+              pointerType.current !== 'mouse' &&
+              event.detail < 2
+            ) {
               caretFromPoint(event.clientX)
             }
-
-            onClick?.(event)
           }}
           onCompositionEnd={(event) => {
             const raw = event.currentTarget.value
@@ -905,15 +915,40 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           onFocus={(event) => {
             setFocused(true)
             const input = event.currentTarget
-            const end = input.value.length
-            input.setSelectionRange(Math.min(end, length - 1), end)
-            previousSelection.current = null
-            syncSelection()
+            const placeFocusCaret = () => {
+              const end = input.value.length
+              input.setSelectionRange(Math.min(end, length - 1), end)
+              previousSelection.current = null
+              syncSelection()
+            }
+
+            placeFocusCaret()
+            // WebKit (Safari) selects the whole text after a keyboard focus,
+            // past this handler; put the caret back after the last character.
+            window.setTimeout(() => {
+              if (
+                isFocused(input) &&
+                input.value.length > 1 &&
+                input.selectionStart === 0 &&
+                input.selectionEnd === input.value.length
+              ) {
+                placeFocusCaret()
+              }
+            }, 0)
             onFocus?.(event)
           }}
+          onKeyDown={(event) => {
+            onKeyDown?.(event)
+            // WebKit reports Delete over a selection as a backward delete.
+            forwardDelete.current =
+              !event.defaultPrevented && event.key === 'Delete'
+          }}
           onMouseDown={(event) => {
+            onMouseDown?.(event)
+
             // A click selects the cell under the pointer, never a text offset.
             if (
+              !event.defaultPrevented &&
               !disabled &&
               event.button === 0 &&
               event.detail < 2 &&
@@ -923,11 +958,11 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
               focusInput()
               caretFromPoint(event.clientX)
             }
-
-            onMouseDown?.(event)
           }}
           onPaste={(event) => {
-            if (!readOnly && !disabled) {
+            onPaste?.(event)
+
+            if (!event.defaultPrevented && !readOnly && !disabled) {
               event.preventDefault()
               const input = event.currentTarget
               applyEdit(
@@ -938,8 +973,6 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
                 event.nativeEvent
               )
             }
-
-            onPaste?.(event)
           }}
           onPointerDown={(event) => {
             pointerType.current = event.pointerType

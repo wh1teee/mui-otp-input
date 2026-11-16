@@ -89,6 +89,18 @@ standard shadcn tokens (`--background`, `--input`, `--ring`, `--destructive`,
 `--radius`, …). Cells expose `data-active`, `data-filled`, `data-fake-caret`,
 `data-invalid` and `data-disabled` for your own styles.
 
+Size the cells with `--input-otp-slot-width` (default `2.5rem`, `2.75rem` on
+touch screens), `--input-otp-slot-height` and `--input-otp-gap` (`0.5rem`). A
+cell never grows past its width and shrinks, equally with the others, when the
+line is narrower than the cells need, so six cells fit a 320px phone.
+
+Event handlers passed to `InputOTP` compose with the internal ones. For
+cancellable events (`onPaste`, `onMouseDown`, `onClick`, `onKeyDown`,
+`onBeforeInput`) your handler runs first, and calling `preventDefault()`
+skips the internal handling. For `onCompositionStart`, `onCompositionEnd`,
+`onFocus` and `onBlur` the internal handling runs first, so your handler sees
+the committed value.
+
 Compose the primitives when your design system owns the field layout. Root
 attributes such as `id`, `name`, `aria-*` and event handlers go to the input:
 

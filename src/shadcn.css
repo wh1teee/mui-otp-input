@@ -11,22 +11,29 @@
   font-weight: 500;
 }
 
-[data-slot='input-otp'] {
+/*
+ * Sizing variables: --input-otp-slot-width, --input-otp-slot-height and
+ * --input-otp-gap. A slot never grows past its width and shrinks, with the
+ * others, when the line is narrower than the cells need.
+ */
+[data-slot='input-otp'],
+[data-slot='input-otp-group'] {
+  display: flex;
+  align-items: center;
+  gap: var(--input-otp-gap, 0.5rem);
   min-width: 0;
 }
 
 [data-slot='input-otp-group'] {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
+  flex: 0 1 auto;
 }
 
 [data-slot='input-otp-slot'] {
   box-sizing: border-box;
-  width: 2.5rem;
+  flex: 0 1 auto;
+  width: var(--input-otp-slot-width, 2.5rem);
   min-width: 0;
-  height: 2.5rem;
+  height: var(--input-otp-slot-height, 2.5rem);
   padding: 0;
   border: 1px solid var(--input, #d4d4d4);
   border-radius: var(--radius, 0.5rem);
@@ -120,9 +127,10 @@ div[data-slot='input-otp-slot'] {
 }
 
 @media (pointer: coarse) {
+  /* Touch-target default; it still shrinks on a narrow line. */
   [data-slot='input-otp-slot'] {
-    width: 2.75rem;
-    height: 2.75rem;
+    width: var(--input-otp-slot-width, 2.75rem);
+    height: var(--input-otp-slot-height, 2.75rem);
   }
 }
 

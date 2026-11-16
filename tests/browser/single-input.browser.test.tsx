@@ -154,7 +154,9 @@ test('renders exactly one labelled input over cells hidden from assistive techno
   // whole code inserted into a partly filled field.
   expect(input.hasAttribute('maxlength')).toBe(false)
   expect(input.pattern).toBe('[0-9]*')
-  expect(input.enterKeyHint).toBe('done')
+  // WebKit on Linux does not reflect the IDL property; the attribute is what
+  // a keyboard reads.
+  expect(input.getAttribute('enterkeyhint')).toBe('done')
   expect(input.name).toBe('code')
   expect(input.required).toBe(true)
   await expect.element(code()).toHaveAccessibleDescription('Six digits')
@@ -726,7 +728,12 @@ test('the skin keeps forced colors off the transparent input and dims a bare dis
     </>
   )
   const bare = page.getByRole('textbox', { name: 'Bare' }).element()
-  expect(getComputedStyle(bare).forcedColorAdjust).toBe('none')
+
+  // WebKit has no forced colors mode and no such property.
+  if (CSS.supports('forced-color-adjust', 'none')) {
+    expect(getComputedStyle(bare).forcedColorAdjust).toBe('none')
+  }
+
   expect(
     getComputedStyle(page.getByTestId('bare-cell').element()).opacity
   ).toBe('0.5')
@@ -773,5 +780,125 @@ test('only a password-manager badge over this field pushes the input', async () 
       .toBeGreaterThan(root.getBoundingClientRect().width)
   } finally {
     badge.remove()
+  }
+})
+
+test('a host can cancel paste, mouse and key handling with preventDefault', async () => {
+  const onValue = vi.fn()
+  await render(
+    <Field
+      onKeyDown={(event) => {
+        if (event.key === '5') {
+          event.preventDefault()
+        }
+      }}
+      onMouseDown={(event) => {
+        event.preventDefault()
+      }}
+      onPaste={(event) => {
+        event.preventDefault()
+      }}
+      onValue={onValue}
+      value="12"
+    />
+  )
+  await userEvent.tab()
+  await expect.poll(activeCells).toEqual([2])
+
+  dispatchPaste(codeInput(), '123456')
+  await userEvent.keyboard('5')
+  await settle()
+  expect(onValue).not.toHaveBeenCalled()
+  expect(codeInput().value).toBe('12')
+
+  // The host's mousedown kept the internal cell placement from running.
+  await clickCell(0)
+  expect(activeCells()).toEqual([2])
+})
+
+test('host handlers run first and see the field before the internal handling', async () => {
+  const seen: string[] = []
+  await render(
+    <Field
+      onMouseDown={() => {
+        seen.push(`mousedown:${String(activeCells())}`)
+      }}
+      onPaste={() => {
+        seen.push(`paste:${codeInput().value}`)
+      }}
+      value="12"
+    />
+  )
+  await userEvent.tab()
+  dispatchPaste(codeInput(), '345678')
+  await expect.element(page.getByTestId('value')).toHaveTextContent('345678')
+  await clickCell(1)
+  expect(activeCells()).toEqual([1])
+  expect(seen).toEqual(['paste:12', 'mousedown:5'])
+})
+
+test('six cells shrink equally to fit a 288px line and keep their set width on a wide one', async () => {
+  // The README layout: two groups around a separator.
+  function Cells({ width }: { width: number }) {
+    return (
+      <div data-testid={`box-${width}`} style={{ width }}>
+        <InputOTP aria-label={`Code ${width}`} length={6}>
+          <InputOTPGroup>
+            <InputOTPSlot index={0} />
+            <InputOTPSlot index={1} />
+            <InputOTPSlot index={2} />
+          </InputOTPGroup>
+          <InputOTPSeparator />
+          <InputOTPGroup>
+            <InputOTPSlot index={3} />
+            <InputOTPSlot index={4} />
+            <InputOTPSlot index={5} />
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
+    )
+  }
+
+  await render(
+    <>
+      <Cells width={288} />
+      <Cells width={600} />
+    </>
+  )
+
+  for (const [width, expected] of [
+    [288, null],
+    [600, 40]
+  ] as const) {
+    const box = page.getByTestId(`box-${width}`).element() as HTMLElement
+    const widths = [
+      ...box.querySelectorAll<HTMLElement>('[data-slot="input-otp-slot"]')
+    ].map((cell) => {
+      return cell.getBoundingClientRect().width
+    })
+    const last = box
+      .querySelectorAll<HTMLElement>('[data-slot="input-otp-slot"]')[5]
+      .getBoundingClientRect()
+
+    const boxCells = [
+      ...box.querySelectorAll<HTMLElement>('[data-slot="input-otp-slot"]')
+    ]
+    // One line, equal up to sub-pixel layout rounding.
+    expect(
+      new Set(
+        boxCells.map((cell) => {
+          return Math.round(cell.getBoundingClientRect().top)
+        })
+      ).size
+    ).toBe(1)
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(0.5)
+    expect(last.right).toBeLessThanOrEqual(box.getBoundingClientRect().right)
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth)
+
+    if (expected === null) {
+      expect(widths[0]).toBeLessThan(40)
+    } else {
+      expect(widths[0]).toBe(expected)
+    }
   }
 })
