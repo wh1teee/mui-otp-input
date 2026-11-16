@@ -25,7 +25,7 @@ try {
     await readFile(join(packageRoot, 'package.json'), 'utf8')
   )
   assert.equal(manifest.name, '@wh1teee/mui-otp-input')
-  assert.match(manifest.version, /^8\.\d+\.\d+(?:-next\.\d+)?$/u)
+  assert.match(manifest.version, /^9\.\d+\.\d+(?:-next\.\d+)?$/u)
   assert.deepEqual(manifest.publishConfig, {
     access: 'public',
     provenance: true
@@ -89,6 +89,12 @@ try {
   const base = await collectClosure('dist/base-ui.js')
   assert([...base].some((value) => value.startsWith('@base-ui/react')))
   assert(![...base].some((value) => value.startsWith('@mui/material')))
+  const shadcn = await collectClosure('dist/shadcn.js')
+  assert(
+    ![...shadcn].some((value) =>
+      /^(?:@base-ui\/react|@mui\/|@emotion\/)/u.test(value)
+    )
+  )
   assert.equal((await collectClosure('dist/headless.js')).size, 0)
 
   const css = await readFile(join(packageRoot, 'dist/shadcn.css'), 'utf8')

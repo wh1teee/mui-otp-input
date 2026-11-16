@@ -103,22 +103,58 @@ assert.equal(isOtpComplete(value, 4), true)
 import assert from 'node:assert/strict'
 import { renderToString } from 'react-dom/server'
 import { OtpInput } from '@wh1teee/mui-otp-input/base-ui'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@wh1teee/mui-otp-input/shadcn'
 
 const field = renderToString(
   <OtpInput defaultValue="1234" label="Verification code" length={4} name="code" />
 )
-const primitive = renderToString(
-  <InputOTP defaultValue="12" length={2}>
-    <InputOTPGroup>
-      <InputOTPSlot index={0} />
-      <InputOTPSlot index={1} aria-label="Second character" />
-    </InputOTPGroup>
-  </InputOTP>
-)
 assert.match(field, /one-time-code/)
 assert.match(field, /name="code"/)
-assert.match(primitive, /Second character/)
+`
+  },
+  {
+    name: 'shadcn-react19-without-base-ui',
+    dependencies: {
+      '@types/react': '19.3.0',
+      '@types/react-dom': '19.3.0',
+      react: '19.3.0',
+      'react-dom': '19.3.0'
+    },
+    forbidden: [
+      '@base-ui/react',
+      '@mui/material',
+      '@emotion/react',
+      '@emotion/styled'
+    ],
+    types: ['node', 'react', 'react-dom'],
+    sourceName: 'index.tsx',
+    source: `
+import assert from 'node:assert/strict'
+import * as React from 'react'
+import { renderToString } from 'react-dom/server'
+import {
+  InputOTP,
+  type InputOTPHandle,
+  InputOTPGroup,
+  InputOTPSlot,
+  useWebOtp
+} from '@wh1teee/mui-otp-input/shadcn'
+
+function Code() {
+  useWebOtp({ length: 2, onCode: () => {} })
+  const handle = React.useRef<InputOTPHandle>(null)
+  return (
+    <InputOTP ref={handle} aria-label="Code" defaultValue="12" length={2} name="code">
+      <InputOTPGroup>
+        <InputOTPSlot index={0} />
+        <InputOTPSlot index={1} />
+      </InputOTPGroup>
+    </InputOTP>
+  )
+}
+const html = renderToString(<Code />)
+assert.match(html, /one-time-code/)
+assert.match(html, /name="code"/)
+assert.equal(html.match(/<input/g)?.length, 1)
 `
   },
   {
@@ -262,6 +298,34 @@ function Form() {
   return <OtpInputController control={control} label="Code" length={4} name="code" />
 }
 assert.match(renderToString(<Form />), /one-time-code/)
+`
+  },
+  {
+    name: 'shadcn-rhf-without-base-ui',
+    dependencies: {
+      '@types/react': '19.3.0',
+      '@types/react-dom': '19.3.0',
+      react: '19.3.0',
+      'react-dom': '19.3.0',
+      'react-hook-form': '7.88.0'
+    },
+    forbidden: ['@base-ui/react', '@mui/material', '@emotion/react'],
+    types: ['node', 'react', 'react-dom'],
+    sourceName: 'index.tsx',
+    source: `
+import assert from 'node:assert/strict'
+import { renderToString } from 'react-dom/server'
+import { useForm } from 'react-hook-form'
+import { OtpInputController } from '@wh1teee/mui-otp-input/shadcn/react-hook-form'
+
+type Values = { code: string }
+function Form() {
+  const { control } = useForm<Values>({ defaultValues: { code: '1234' } })
+  return <OtpInputController control={control} label="Code" length={4} name="code" />
+}
+const html = renderToString(<Form />)
+assert.match(html, /one-time-code/)
+assert.equal(html.match(/<input/g)?.length, 1)
 `
   }
 ]

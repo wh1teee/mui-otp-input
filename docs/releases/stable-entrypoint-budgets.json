@@ -16,38 +16,38 @@
   "profiles": {
     "index": {
       "renderer": "mui",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 4700,
+      "brotliLimit": 4150
     },
     "headless": {
       "renderer": "headless",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 1100,
+      "brotliLimit": 1000
     },
     "base-ui": {
       "renderer": "base-ui",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 4050,
+      "brotliLimit": 3650
     },
     "shadcn": {
       "renderer": "shadcn",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 6150,
+      "brotliLimit": 5500
     },
     "react-hook-form": {
       "renderer": "mui-rhf",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 5150,
+      "brotliLimit": 4550
     },
     "base-ui/react-hook-form": {
       "renderer": "base-ui-rhf",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 3900,
+      "brotliLimit": 3400
     },
     "shadcn/react-hook-form": {
       "renderer": "shadcn-rhf",
-      "gzipLimit": 99999,
-      "brotliLimit": 99999
+      "gzipLimit": 6000,
+      "brotliLimit": 5350
     }
   }
 }

@@ -74,7 +74,6 @@ await writeFile(
       type: 'module',
       scripts: { build: 'next build', start: 'next start' },
       dependencies: {
-        '@base-ui/react': '1.8.0',
         '@wh1teee/mui-otp-input': `file:${tarball}`,
         '@types/node': '25.5.0',
         '@types/react': '19.3.0',
@@ -184,7 +183,9 @@ const config: NextConfig = {
 export default config
 `
   )
+  // /shadcn and /headless need no renderer peer at all.
   for (const forbidden of [
+    '@base-ui/react',
     '@mui/material',
     '@emotion/react',
     '@emotion/styled'
@@ -204,7 +205,7 @@ export default config
         .map((path) => readFile(join(staticRoot, path), 'utf8'))
     )
   ).join('\n')
-  assert.doesNotMatch(javascript, /@mui\/|MuiOtpInput|@emotion\//u)
+  assert.doesNotMatch(javascript, /@mui\/|MuiOtpInput|@emotion\/|@base-ui\//u)
 
   const port = 31_879
   const nextCli = join(dirname(nextManifest), 'dist', 'bin', 'next')
@@ -240,6 +241,7 @@ export default config
     assert.match(html, />1234</u)
     assert.match(html, /Verification code/u)
     assert.match(html, /one-time-code/u)
+    assert.equal(html.match(/<input/gu)?.length, 1)
   } finally {
     server.kill('SIGTERM')
     await new Promise((resolveExit) => {
