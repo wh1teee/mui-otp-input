@@ -220,3 +220,73 @@ describe('shadcn single-input React Hook Form adapter', () => {
     ).toBe('9876')
   })
 })
+
+describe('shadcn single-input completion with React Hook Form', () => {
+  function CompleteDefaultForm({
+    onComplete
+  }: {
+    onComplete: (value: string) => void
+  }) {
+    const { control, reset } = useForm<VerificationForm>({
+      defaultValues: { code: '1234' }
+    })
+
+    return (
+      <form>
+        <ShadcnOtpInputController
+          control={control}
+          label="Verification code"
+          length={4}
+          name="code"
+          onComplete={onComplete}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            reset()
+          }}
+        >
+          Reset value
+        </button>
+      </form>
+    )
+  }
+
+  test('a complete default and a reset to it are no completion, in StrictMode too', async () => {
+    // #given
+    const onComplete = vi.fn()
+    render(
+      <React.StrictMode>
+        <CompleteDefaultForm onComplete={onComplete} />
+      </React.StrictMode>
+    )
+    const input = screen.getByRole('textbox', { name: 'Verification code' })
+    await waitFor(() => {
+      return expect((input as HTMLInputElement).value).toBe('1234')
+    })
+
+    // #when
+    input.focus()
+    await userEvent.type(input, '{backspace}', { skipClick: true })
+    await waitFor(() => {
+      return expect((input as HTMLInputElement).value).toBe('123')
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'Reset value' }))
+
+    // #then
+    await waitFor(() => {
+      return expect((input as HTMLInputElement).value).toBe('1234')
+    })
+    expect(onComplete).not.toHaveBeenCalled()
+
+    // #when a user completes a code
+    input.focus()
+    await userEvent.type(input, '{backspace}9', { skipClick: true })
+
+    // #then
+    await waitFor(() => {
+      return expect(onComplete).toHaveBeenCalledWith('1239')
+    })
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
+})

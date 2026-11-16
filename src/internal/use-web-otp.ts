@@ -13,8 +13,11 @@ export type UseWebOtpOptions = {
 }
 
 export type UseWebOtpResult = {
-  /** Aborts the pending request, for example on submit or resend. */
+  /** Aborts the pending request, for example on submit. */
   abort: () => void
+  /** Aborts any pending request and starts a new one, for example after a
+   * resend. No-op while `enabled` is false. */
+  restart: () => void
 }
 
 const SMS: readonly WebOtpTransport[] = ['sms']
@@ -32,6 +35,7 @@ export function useWebOtp({
   const onCodeRef = React.useRef(onCode)
   const controllerRef = React.useRef<AbortController | null>(null)
   const transportKey = transport.join(' ')
+  const [attempt, setAttempt] = React.useState(0)
 
   React.useEffect(() => {
     onCodeRef.current = onCode
@@ -57,13 +61,19 @@ export function useWebOtp({
     return () => {
       controller.abort()
     }
-  }, [enabled, length, transportKey])
+  }, [attempt, enabled, length, transportKey])
 
   const abort = React.useCallback(() => {
     controllerRef.current?.abort()
   }, [])
 
+  const restart = React.useCallback(() => {
+    setAttempt((count) => {
+      return count + 1
+    })
+  }, [])
+
   return React.useMemo(() => {
-    return { abort }
-  }, [abort])
+    return { abort, restart }
+  }, [abort, restart])
 }

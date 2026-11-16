@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { isWebOtpSupported, requestWebOtp } from './headless'
 import { useWebOtp } from './shadcn'
 
@@ -137,6 +137,34 @@ describe('useWebOtp', () => {
     result.current.abort()
     expect(requests[1].options.signal?.aborted).toBe(true)
     expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  test('restart() requests again after abort(), for a resend', async () => {
+    const { requests } = mockWebOtp()
+    const onCode = vi.fn()
+    const { result } = renderHook(() => {
+      return useWebOtp({ length: 6, onCode })
+    })
+    await waitFor(() => {
+      return expect(requests).toHaveLength(1)
+    })
+
+    act(() => {
+      result.current.abort()
+    })
+    expect(requests[0].options.signal?.aborted).toBe(true)
+
+    act(() => {
+      result.current.restart()
+    })
+    await waitFor(() => {
+      return expect(requests).toHaveLength(2)
+    })
+    requests[1].resolve({ code: '111222' })
+    await waitFor(() => {
+      return expect(onCode).toHaveBeenCalledWith('111222')
+    })
+    expect(onCode).toHaveBeenCalledTimes(1)
   })
 
   test('does not request while disabled', () => {

@@ -138,8 +138,10 @@ import {
 import { useRef, useState } from 'react'
 
 export function VerificationCode({
+  resend,
   verify
 }: {
+  resend: () => Promise<void>
   verify: (code: string) => Promise<boolean>
 }) {
   const [code, setCode] = useState('')
@@ -148,27 +150,45 @@ export function VerificationCode({
   const webOtp = useWebOtp({ length: 6, onCode: setCode })
 
   return (
-    <OtpInput
-      ref={field}
-      label="Verification code"
-      length={6}
-      value={code}
-      onValueChange={setCode}
-      onComplete={async (value) => {
-        webOtp.abort()
-        // A wrong code: wipe it and put the caret in the first cell.
-        if (!(await verify(value))) field.current?.clear({ focus: true })
-      }}
-    />
+    <>
+      <OtpInput
+        ref={field}
+        label="Verification code"
+        length={6}
+        value={code}
+        onValueChange={setCode}
+        onComplete={async (value) => {
+          webOtp.abort()
+          // A wrong code: wipe it and put the caret in the first cell.
+          if (!(await verify(value))) field.current?.clear({ focus: true })
+        }}
+      />
+      <button
+        type="button"
+        onClick={async () => {
+          await resend()
+          // A new SMS is on its way: listen for it again.
+          webOtp.restart()
+        }}
+      >
+        Send a new code
+      </button>
+    </>
   )
 }
 ```
 
-`onComplete` fires once each time the value becomes complete (not on mount,
-not twice for the same value); `autoSubmit` submits the owning form with
-`requestSubmit()` on the same edge. The `ref` handle offers
-`clear({ focus })`, `focus()`, `root` and `input`. `requestWebOtp` in
-`/headless` is the React-free core of `useWebOtp`.
+`onComplete` fires once each time a change makes the value complete: not for
+a value present at mount, not when a form reset (or an RHF `reset`) returns to
+it, and not twice for the same value. `autoSubmit` submits the owning form
+with `requestSubmit()` on the same edge. The `ref` handle offers
+`clear({ focus })`, `focus()`, `root` and `input`. `useWebOtp` returns
+`abort()` and `restart()`; `requestWebOtp` in `/headless` is its React-free
+core. WebOTP codes are accepted as digits only.
+
+`mask` draws dots in the cells but hides nothing from assistive technology:
+the input stays `type="text"` (so one-time-code autofill keeps working), and a
+screen reader still reads the characters.
 
 ## Base UI
 

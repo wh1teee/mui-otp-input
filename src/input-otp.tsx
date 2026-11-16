@@ -141,6 +141,8 @@ function inputStyle(
     background: 'transparent',
     color: 'transparent',
     caretColor: 'transparent',
+    // Forced colors would paint the real text and caret over the cells.
+    forcedColorAdjust: 'none',
     // 16px keeps iOS from zooming into the field on focus.
     font: '16px/1 monospace',
     letterSpacing: '-.5em',
@@ -152,14 +154,26 @@ function inputStyle(
 const useIsomorphicLayoutEffect =
   typeof document === 'undefined' ? React.useEffect : React.useLayoutEffect
 
-function insertGlobalStyles(document: Document) {
-  if (document.getElementById(STYLE_ID)) {
+/** The document or shadow root the input lives in. */
+function rootNodeOf(input: HTMLInputElement) {
+  return input.getRootNode() as Document | ShadowRoot
+}
+
+function isFocused(input: HTMLInputElement | null): input is HTMLInputElement {
+  return input !== null && rootNodeOf(input).activeElement === input
+}
+
+function insertGlobalStyles(input: HTMLInputElement) {
+  const root = rootNodeOf(input)
+
+  if (root.getElementById(STYLE_ID)) {
     return
   }
 
-  const element = document.createElement('style')
+  const element = input.ownerDocument.createElement('style')
   element.id = STYLE_ID
-  document.head.append(element)
+  // Rules in document.head do not reach into a shadow tree.
+  ;('head' in root ? root.head : root).append(element)
   const hidden =
     'background:transparent!important;color:transparent!important;border-color:transparent!important;box-shadow:none!important;-webkit-text-fill-color:transparent!important'
 
@@ -199,6 +213,34 @@ function badgeSpace(root: HTMLElement) {
   }
 
   return root.ownerDocument.documentElement.clientWidth - right
+}
+
+/** A known password-manager badge drawn over this field's rectangle. */
+function hasBadgeOver(root: HTMLElement) {
+  const field = root.getBoundingClientRect()
+
+  for (const badge of root.ownerDocument.querySelectorAll(BADGE_SELECTORS)) {
+    const rect = badge.getBoundingClientRect()
+
+    if (
+      rect.left < field.right &&
+      rect.right > field.left &&
+      rect.top < field.bottom &&
+      rect.bottom > field.top
+    ) {
+      return true
+    }
+  }
+
+  // Unknown managers: whatever is drawn where badges sit, at the right edge.
+  // Optional call: test DOMs such as jsdom do not implement it.
+  const probe =
+    root.ownerDocument.elementFromPoint?.(
+      field.right - 18,
+      field.top + field.height / 2
+    ) ?? null
+
+  return probe !== null && !root.contains(probe)
 }
 
 function createChangeDetails(
@@ -272,6 +314,8 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       onBlur,
       onClick,
       onComplete,
+      onCompositionEnd,
+      onCompositionStart,
       onFocus,
       onMouseDown,
       onPaste,
@@ -297,6 +341,13 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
     // The selection right before the browser applies an edit.
     const editRange = React.useRef<Selection | null>(null)
     const pointerType = React.useRef('mouse')
+    // An IME owns the text and the selection until composition ends.
+    const composing = React.useRef(false)
+    // `inputType` of the edit in progress, from `beforeinput`.
+    const inputType = React.useRef('')
+    // The last value this component committed, to tell user edits from
+    // outside changes (a form reset, a host `value`).
+    const committed = React.useRef<null | string>(null)
 
     const canonical = (candidate: string) => {
       return normalizeOtpValue(candidate, {
@@ -335,8 +386,19 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
     const syncSelection = React.useCallback(() => {
       const input = inputElementRef.current
 
-      if (!input || input.ownerDocument.activeElement !== input) {
+      if (!isFocused(input)) {
         setSelection(null)
+
+        return
+      }
+
+      if (composing.current) {
+        // Moving the selection now would commit or cancel the composition.
+        setSelection(
+          input.selectionStart === null || input.selectionEnd === null
+            ? null
+            : [input.selectionStart, input.selectionEnd]
+        )
 
         return
       }
@@ -386,6 +448,8 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           return false
         }
 
+        committed.current = next
+
         if (!current.controlled) {
           setUncontrolledValue(next)
         }
@@ -395,11 +459,15 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       []
     )
 
-    const restoreSelection = (range: Selection | null) => {
+    const restoreSelection = (range: Selection | null, fresh = false) => {
       // React restores the controlled input value after the handler returns.
       queueMicrotask(() => {
         if (range) {
           inputElementRef.current?.setSelectionRange(range[0], range[1])
+        }
+
+        if (fresh) {
+          previousSelection.current = null
         }
 
         syncSelection()
@@ -418,7 +486,8 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       const prepared =
         kind === 'paste' ? preprocessOtpPaste(text, pastePreprocess) : text
       const options = { transformChar, validateChar, validationType }
-      // A whole code replaces the field, wherever the caret was.
+      // A whole code replaces the field, wherever the caret was; its first
+      // `length` accepted characters win.
       const whole =
         prepared.replaceAll(/\s/gu, '').length >= length
           ? normalizeOtpValue(prepared, { ...options, length })
@@ -429,31 +498,47 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           : [
               start,
               end,
-              normalizeOtpValue(prepared, {
-                ...options,
-                indexOffset: start,
-                length: length - start
-              })
+              // No room after the last cell: nothing is accepted there.
+              start < length
+                ? normalizeOtpValue(prepared, {
+                    ...options,
+                    indexOffset: start,
+                    length: length - start
+                  })
+                : ''
             ]
 
-      if (accepted === '' && prepared.trim() !== '') {
-        onValueInvalid?.(prepared, {
-          event,
-          reason: kind === 'paste' ? 'input-paste' : 'input-change'
-        })
+      // Text that adds no character (a rejected one, a space) is no edit.
+      if (accepted === '' && prepared !== '') {
+        if (prepared.trim() !== '') {
+          onValueInvalid?.(prepared, {
+            event,
+            reason: kind === 'paste' ? 'input-paste' : 'input-change'
+          })
+        }
+
         restoreSelection(range)
 
         return
       }
 
       const next = canonical(value.slice(0, from) + accepted + value.slice(to))
+      const caret = Math.min(from + accepted.length, next.length)
       const reason =
         kind === 'paste'
           ? 'input-paste'
           : accepted === ''
             ? 'input-clear'
             : 'input-change'
-      pendingCaret.current = Math.min(from + accepted.length, next.length)
+
+      if (next === value) {
+        // No render follows, and React puts the old text back: move on here.
+        restoreSelection([caret, caret], true)
+
+        return
+      }
+
+      pendingCaret.current = caret
 
       if (!commit(next, reason, event)) {
         pendingCaret.current = null
@@ -510,13 +595,21 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
         suffix += 1
       }
 
-      applyEdit(
-        start,
-        value.length - suffix,
-        raw.slice(start, raw.length - suffix),
-        'input',
-        event
-      )
+      const inserted = raw.slice(start, raw.length - suffix)
+
+      // More characters than cells without a whole code among the inserted
+      // text (a script or an extension set the value): the new text's first
+      // `length` characters win. A whole inserted code wins in `applyEdit`.
+      if (
+        raw.replaceAll(/\s/gu, '').length > length &&
+        inserted.replaceAll(/\s/gu, '').length < length
+      ) {
+        applyEdit(0, value.length, raw, 'input', event)
+
+        return
+      }
+
+      applyEdit(start, value.length - suffix, inserted, 'input', event)
     }
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -563,7 +656,7 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
     useIsomorphicLayoutEffect(() => {
       const input = inputElementRef.current
 
-      if (!input || input.ownerDocument.activeElement !== input) {
+      if (!isFocused(input) || composing.current) {
         pendingCaret.current = null
 
         return
@@ -571,6 +664,13 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
 
       const caret = pendingCaret.current ?? value.length
       pendingCaret.current = null
+
+      // A forward delete keeps the caret on the deleted character's cell.
+      if (inputType.current === 'deleteContentForward') {
+        previousSelection.current = null
+      }
+
+      inputType.current = ''
       input.setSelectionRange(caret, caret)
       syncSelection()
     }, [value, syncSelection])
@@ -583,9 +683,10 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       }
 
       const { ownerDocument } = input
-      insertGlobalStyles(ownerDocument)
+      insertGlobalStyles(input)
 
-      const recordRange = () => {
+      const recordRange = (event: Event) => {
+        inputType.current = (event as InputEvent).inputType
         editRange.current =
           input.selectionStart === null || input.selectionEnd === null
             ? null
@@ -616,18 +717,7 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       }
 
       const detect = () => {
-        const rect = root.getBoundingClientRect()
-        // Optional: test DOMs such as jsdom do not implement it.
-        const probe =
-          root.ownerDocument.elementFromPoint?.(
-            rect.right - 18,
-            rect.top + rect.height / 2
-          ) ?? null
-        const hasBadge =
-          root.ownerDocument.querySelector(BADGE_SELECTORS) !== null ||
-          (probe !== null && !root.contains(probe))
-
-        if (hasBadge && badgeSpace(root) >= BADGE_SPACE) {
+        if (hasBadgeOver(root) && badgeSpace(root) >= BADGE_SPACE) {
           setPushBadge(true)
         }
       }
@@ -643,9 +733,12 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       }
     }, [focused, pushBadge])
 
-    // Completion fires on the edge into a complete value, once per value.
+    // Completion fires on the edge into a complete value, once per value,
+    // for a change after mount. A value present at mount, or an outside
+    // return to it (form reset, RHF reset), is no completion.
+    const [mountValue] = React.useState(value)
     const completed = React.useRef(
-      initialValue.length === length ? initialValue : null
+      mountValue.length === length ? mountValue : null
     )
     const onCompleteRef = React.useRef(onComplete)
     React.useEffect(() => {
@@ -663,12 +756,17 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
       }
 
       completed.current = value
+
+      if (value === mountValue && committed.current !== value) {
+        return
+      }
+
       onCompleteRef.current?.(value)
 
       if (autoSubmit) {
         inputElementRef.current?.form?.requestSubmit()
       }
-    }, [autoSubmit, length, value])
+    }, [autoSubmit, length, mountValue, value])
 
     useDelayedFocus(autoFocus, focusInput)
     useFormReset({
@@ -770,7 +868,6 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           data-slot="input-otp-input"
           dir="ltr"
           inputMode={inputMode ?? INPUT_MODES[validationType]}
-          maxLength={length}
           pattern={PATTERNS[validationType]}
           style={inputStyle(pushBadge, disabled)}
           type="text"
@@ -782,25 +879,28 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
           }}
           onChange={handleChange}
           onClick={(event) => {
-            onClick?.(event)
-
             // Touch and pen taps focus natively; then the tapped cell wins.
-            if (
-              !event.defaultPrevented &&
-              pointerType.current !== 'mouse' &&
-              event.detail < 2
-            ) {
+            if (pointerType.current !== 'mouse' && event.detail < 2) {
               caretFromPoint(event.clientX)
             }
+
+            onClick?.(event)
           }}
           onCompositionEnd={(event) => {
             const raw = event.currentTarget.value
+            composing.current = false
             setComposition(null)
             editRange.current = null
 
             if (raw !== value) {
               applyRaw(raw, null, event.nativeEvent)
             }
+
+            onCompositionEnd?.(event)
+          }}
+          onCompositionStart={(event) => {
+            composing.current = true
+            onCompositionStart?.(event)
           }}
           onFocus={(event) => {
             setFocused(true)
@@ -812,39 +912,34 @@ export const InputOTP = React.forwardRef<InputOTPHandle, InputOTPProps>(
             onFocus?.(event)
           }}
           onMouseDown={(event) => {
-            onMouseDown?.(event)
-
+            // A click selects the cell under the pointer, never a text offset.
             if (
-              event.defaultPrevented ||
-              disabled ||
-              event.button !== 0 ||
-              event.detail > 1 ||
-              pointerType.current !== 'mouse'
+              !disabled &&
+              event.button === 0 &&
+              event.detail < 2 &&
+              pointerType.current === 'mouse'
             ) {
-              return
+              event.preventDefault()
+              focusInput()
+              caretFromPoint(event.clientX)
             }
 
-            // A click selects the cell under the pointer, never a text offset.
-            event.preventDefault()
-            focusInput()
-            caretFromPoint(event.clientX)
+            onMouseDown?.(event)
           }}
           onPaste={(event) => {
-            onPaste?.(event)
-
-            if (event.defaultPrevented || readOnly || disabled) {
-              return
+            if (!readOnly && !disabled) {
+              event.preventDefault()
+              const input = event.currentTarget
+              applyEdit(
+                input.selectionStart ?? value.length,
+                input.selectionEnd ?? value.length,
+                event.clipboardData.getData('text/plain'),
+                'paste',
+                event.nativeEvent
+              )
             }
 
-            event.preventDefault()
-            const input = event.currentTarget
-            applyEdit(
-              input.selectionStart ?? value.length,
-              input.selectionEnd ?? value.length,
-              event.clipboardData.getData('text/plain'),
-              'paste',
-              event.nativeEvent
-            )
+            onPaste?.(event)
           }}
           onPointerDown={(event) => {
             pointerType.current = event.pointerType

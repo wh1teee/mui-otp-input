@@ -74,8 +74,18 @@ div[data-slot='input-otp-slot'] {
   opacity: 0.5;
 }
 
-[data-slot='input-otp-slot']:disabled {
+[data-slot='input-otp-slot']:disabled,
+[data-slot='input-otp-slot'][data-disabled] {
   cursor: not-allowed;
+}
+
+/* A bare disabled field; inside OtpInput the wrapper already dims it. */
+[data-slot='input-otp-slot'][data-disabled] {
+  opacity: 0.5;
+}
+
+[data-slot='otp-field'][data-disabled] [data-slot='input-otp-slot'] {
+  opacity: 1;
 }
 
 [data-slot='input-otp-caret'] {
@@ -134,5 +144,12 @@ div[data-slot='input-otp-slot'] {
 
   [data-slot='input-otp-caret'] {
     background: CanvasText;
+  }
+
+  /* The input opts out of forced colors; the cells carry the system colors. */
+  div[data-slot='input-otp-slot'] {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
   }
 }

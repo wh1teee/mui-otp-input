@@ -94,7 +94,17 @@ const webOtp = useWebOtp({ length: 6, onCode: setCode });
     // A wrong code: wipe it and put the caret in the first cell.
     if (!(await verify(value))) field.current?.clear({ focus: true });
   }}
-/>`
+/>
+<button
+  type="button"
+  onClick={async () => {
+    await resend();
+    // A new SMS is on its way: listen for it again.
+    webOtp.restart();
+  }}
+>
+  Send a new code
+</button>`
 
 const characterRulesExample = `// Letters and digits, shown upper-case.
 <MuiOtpInput
@@ -344,7 +354,12 @@ const baseUiProps: readonly PropRow[] = [
     'false',
     'requestSubmit() on the owning form on completion.'
   ],
-  ['mask', 'boolean', 'false', 'Draws a dot in filled cells.'],
+  [
+    'mask',
+    'boolean',
+    'false',
+    'Draws dots in the cells; screen readers still read the code.'
+  ],
   ['ref', 'InputOTPHandle', '—', 'clear({ focus }), focus(), root and input.'],
   [
     'validationType',
@@ -692,7 +707,7 @@ export default function DocumentationPage() {
               <p>gzip for the Material UI entry, peers external.</p>
             </div>
             <div className="docs-card">
-              <strong>≤ 6.15 KB</strong>
+              <strong>≤ 6.5 KB</strong>
               <p>
                 gzip for <code>/shadcn</code>, with no renderer peer.
               </p>
